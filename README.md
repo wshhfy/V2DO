@@ -4,9 +4,9 @@ V2DO 是一个使用 Flutter 开发的 V2EX 与 LINUX DO 第三方客户端，�
 
 ## 界面预览
 
-以下为 Android 实机截图，展示 V2EX 节点和搜索。
+以下为 Android 实机截图，展示 V2EX 主页、主题详情、节点和搜索。截图包含论坛用户公开发布的内容；相关内容及头像属于各自权利人。
 
-<img src="docs/screenshots/node.png" alt="V2EX 节点列表" width="270"> <img src="docs/screenshots/search.png" alt="V2EX 搜索" width="270">
+<img src="docs/screenshots/home.png" alt="V2EX 主页" width="240"> <img src="docs/screenshots/topic.png" alt="V2EX 主题详情" width="240"> <img src="docs/screenshots/node.png" alt="V2EX 节点列表" width="240"> <img src="docs/screenshots/search.png" alt="V2EX 搜索" width="240">
 
 ## 功能
 
@@ -46,6 +46,20 @@ Android release 构建从环境变量 `V2DO_KEYSTORE`、`V2DO_STORE_PASSWORD`、
 
 应用内 GitHub Releases 更新检查需要构建时配置 `--dart-define=GITHUB_REPOSITORY=用户名/仓库名`；未配置时不会检查更新。
 
-项目的第三方依赖、论坛标识及图标素材的许可和使用条件需要在公开发布前逐项核实。源代码许可证待项目维护者确定。
+## 许可证与第三方内容
+
+本项目中由项目维护者有权授权的源码和文档以 [MIT License](LICENSE) 发布，版权署名为 `wshhfy`。其他贡献者保留其贡献的相关权利。
+
+V2EX、LINUX DO、SoV2EX、Imgur 的名称及标识属于各自权利人；截图、帖子、回复和头像等论坛内容的权利属于相应权利人。MIT 授权不会改变上述第三方内容的权利。项目包含的第三方依赖和素材遵循各自的许可与使用条件；论坛标识、官网示意图和截图的具体授权情况需在公开发布前进一步核实。
+
+## 服务与免责声明
+
+V2DO 是独立开发的第三方客户端，与 V2EX、LINUX DO、SoV2EX 和 Imgur 无官方关联，也未获得其官方背书。论坛内容由相关网站及用户提供，项目不保证第三方内容的准确性或完整性。
+
+软件按 MIT 许可证中所述的“现状”提供。论坛网页结构、接口、访问权限和第三方服务可能变化，功能可能不可用；适用法律所规定的权利不受本说明影响。
+
+登录和网站验证使用应用内 WebView。论坛会话及部分设置、浏览记录保存在设备上；应用会为请求论坛内容连接相应论坛服务。使用 SoV2EX 搜索会向该服务发送搜索词，使用 Imgur 上传会向其发送所选图片；第三方服务的数据处理受其自身规则约束。
+
+如有素材权利或其他问题，可通过仓库 Issues 联系维护者。
 
 
