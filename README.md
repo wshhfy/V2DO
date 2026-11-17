@@ -28,7 +28,7 @@ flutter test
 flutter build apk --release
 ```
 
-当前 Android release 构建使用开发用 debug 签名，不能视为正式发布签名。公开分发前应配置并妥善保管自己的长期签名密钥；更换签名后不能直接覆盖已安装的旧版测试包。
+Android release 构建从环境变量 `V2DO_KEYSTORE`、`V2DO_STORE_PASSWORD`、`V2DO_KEY_PASSWORD` 和 `V2DO_KEY_ALIAS` 读取签名配置。密钥和密码不得提交到仓库，应由维护者妥善备份。Debug 与正式包签名不同，不能直接相互覆盖安装。
 
 应用内 GitHub Releases 更新检查需要构建时配置 `--dart-define=GITHUB_REPOSITORY=用户名/仓库名`；未配置时不会检查更新。
 
