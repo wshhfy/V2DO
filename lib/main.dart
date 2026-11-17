@@ -533,10 +533,14 @@ class _ForumSearchPageState extends State<ForumSearchPage> {
   String activeQuery = '', error = '';
   int page = 0, generation = 0;
   bool loading = false, more = false, searched = false;
+  late final Future<List<ForumSection>> nodes;
 
   @override
   void initState() {
     super.initState();
+    nodes = widget.forum.discourse
+        ? Future.value([])
+        : widget.forum.sections('node');
     scroll.addListener(() {
       if (scroll.position.extentAfter < 500 && more && !loading)
         search(next: true);
@@ -554,10 +558,7 @@ class _ForumSearchPageState extends State<ForumSearchPage> {
     final text = next ? activeQuery : query.text.trim();
     if (text.isEmpty || (next && loading)) return;
     if (!widget.forum.discourse) {
-      final uri = Uri.https(
-          'www.google.com', '/search', {'q': 'site:v2ex.com/t $text'});
-      if (!await openExternal(uri) && mounted)
-        setState(() => error = '无法打开浏览器，请检查设备设置');
+      setState(() => searched = true);
       return;
     }
     final token = next ? generation : ++generation;
@@ -623,56 +624,113 @@ class _ForumSearchPageState extends State<ForumSearchPage> {
             child: TextField(
                 controller: query,
                 autofocus: true,
+                onChanged:
+                    widget.forum.discourse ? null : (_) => setState(() {}),
                 textInputAction: TextInputAction.search,
                 onSubmitted: (_) => search(),
                 decoration: InputDecoration(
-                    hintText: '搜索帖子',
+                    hintText: widget.forum.discourse ? '搜索帖子' : '搜索节点，或输入 @用户名',
                     prefixIcon: const Icon(Icons.search),
                     suffixIcon: IconButton(
                         tooltip: '搜索',
                         onPressed: search,
                         icon: const Icon(Icons.arrow_forward)),
                     border: const OutlineInputBorder()))),
-        if (!widget.forum.discourse)
-          const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              child: Text('V2EX 搜索将使用浏览器中的 Google 站内搜索。',
-                  style: TextStyle(fontSize: 12))),
         if (error.isNotEmpty)
           Padding(padding: const EdgeInsets.all(12), child: Text(error)),
-        Expanded(
-            child: ListView.builder(
-                controller: scroll,
-                itemCount: results.length + 1,
-                itemBuilder: (context, i) {
-                  if (i == results.length)
-                    return Padding(
-                        padding: const EdgeInsets.all(18),
-                        child: Center(
-                            child: loading
-                                ? const CircularProgressIndicator()
-                                : Text(
-                                    searched && results.isEmpty && error.isEmpty
-                                        ? '没有找到结果'
-                                        : more
-                                            ? '继续下滑加载'
-                                            : '')));
-                  final topic = results[i];
-                  return ListTile(
-                      title: Text(topic.title,
-                          maxLines: 2, overflow: TextOverflow.ellipsis),
-                      subtitle: Text(
-                          [topic.author, topic.activityExcerpt]
-                              .where((s) => s.isNotEmpty)
-                              .join(' · '),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis),
-                      trailing: Text('${topic.replies}'),
-                      onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute<void>(
-                              builder: (_) => TopicPage(widget.forum, topic))));
-                }))
+        if (!widget.forum.discourse)
+          Expanded(
+              child: FutureBuilder<List<ForumSection>>(
+                  future: nodes,
+                  builder: (context, snapshot) {
+                    final text = query.text.trim();
+                    if (text.isEmpty)
+                      return const Center(child: Text('输入节点名称或 @用户名'));
+                    if (text.startsWith('@')) {
+                      final name = text.substring(1).trim();
+                      if (!RegExp(r'^[A-Za-z0-9_]{1,40}$').hasMatch(name))
+                        return const Center(child: Text('请输入有效的用户名'));
+                      return ListView(children: [
+                        ListTile(
+                            leading: const Icon(Icons.person_outline),
+                            title: Text('@$name'),
+                            subtitle: const Text('查看用户资料'),
+                            onTap: () =>
+                                openMember(context, widget.forum, name))
+                      ]);
+                    }
+                    if (snapshot.connectionState != ConnectionState.done)
+                      return const Center(child: CircularProgressIndicator());
+                    if (snapshot.hasError)
+                      return const Center(child: Text('节点列表加载失败，请稍后重试'));
+                    final lower = text.toLowerCase();
+                    final matches = (snapshot.data ?? [])
+                        .where((s) =>
+                            s.id.toLowerCase().contains(lower) ||
+                            s.name.toLowerCase().contains(lower))
+                        .toList();
+                    return ListView(children: [
+                      const Padding(
+                          padding: EdgeInsets.fromLTRB(16, 12, 16, 6),
+                          child: Text('节点',
+                              style: TextStyle(fontWeight: FontWeight.bold))),
+                      if (matches.isEmpty)
+                        const ListTile(title: Text('没有匹配的节点')),
+                      for (final node in matches.take(30))
+                        ListTile(
+                            leading: const Icon(Icons.tag),
+                            title: Text(node.name),
+                            subtitle: Text(node.id),
+                            onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute<void>(
+                                    builder: (_) => Scaffold(
+                                        appBar: AppBar(title: Text(node.name)),
+                                        body: SafeArea(
+                                            child: Feed(widget.forum,
+                                                initialSection: node)))))),
+                      const Padding(
+                          padding: EdgeInsets.all(16),
+                          child: Text('此处显示官网搜索框中的节点和用户入口；帖子全文搜索暂不可用。',
+                              style: TextStyle(fontSize: 12)))
+                    ]);
+                  }))
+        else
+          Expanded(
+              child: ListView.builder(
+                  controller: scroll,
+                  itemCount: results.length + 1,
+                  itemBuilder: (context, i) {
+                    if (i == results.length)
+                      return Padding(
+                          padding: const EdgeInsets.all(18),
+                          child: Center(
+                              child: loading
+                                  ? const CircularProgressIndicator()
+                                  : Text(searched &&
+                                          results.isEmpty &&
+                                          error.isEmpty
+                                      ? '没有找到结果'
+                                      : more
+                                          ? '继续下滑加载'
+                                          : '')));
+                    final topic = results[i];
+                    return ListTile(
+                        title: Text(topic.title,
+                            maxLines: 2, overflow: TextOverflow.ellipsis),
+                        subtitle: Text(
+                            [topic.author, topic.activityExcerpt]
+                                .where((s) => s.isNotEmpty)
+                                .join(' · '),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis),
+                        trailing: Text('${topic.replies}'),
+                        onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute<void>(
+                                builder: (_) =>
+                                    TopicPage(widget.forum, topic))));
+                  }))
       ]));
 }
 
@@ -700,7 +758,8 @@ class _FeedTab extends StatelessWidget {
 
 class Feed extends StatefulWidget {
   final Forum forum;
-  const Feed(this.forum, {super.key});
+  final ForumSection? initialSection;
+  const Feed(this.forum, {super.key, this.initialSection});
   @override
   State<Feed> createState() => _FeedState();
 }
@@ -767,7 +826,7 @@ class _FeedState extends State<Feed> with AutomaticKeepAliveClientMixin {
         ? Future.value([])
         : widget.forum.sections('tab');
     if (!widget.forum.discourse)
-      section = const ForumSection('all', '全部', 'tab');
+      section = widget.initialSection ?? const ForumSection('all', '全部', 'tab');
     scroll.addListener(nearEnd);
     if (!widget.forum.discourse) Relations.changes.addListener(reload);
     reload();

@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'site_view.dart';
 
-const appVersion = '0.20.8';
+const appVersion = '0.20.9';
 const githubRepository = String.fromEnvironment('GITHUB_REPOSITORY');
 
 class AppPreferences extends ChangeNotifier {
