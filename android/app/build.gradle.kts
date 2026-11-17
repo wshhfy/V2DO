@@ -44,7 +44,12 @@ android {
         }
     }
     buildTypes {
+        debug {
+            manifestPlaceholders["appLabel"] = "V2DO 测试版"
+        }
         release {
+            applicationIdSuffix = ".release"
+            manifestPlaceholders["appLabel"] = "V2DO"
             signingConfig = signingConfigs.findByName("v2doRelease")
         }
     }
