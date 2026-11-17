@@ -2,6 +2,12 @@
 
 V2DO 是一个使用 Flutter 开发的 V2EX 与 LINUX DO 第三方客户端，界面以 Android 为优先。它与两个论坛均无官方关联。
 
+## 界面预览
+
+以下为 Android 开发版实机截图，展示 V2EX 节点和搜索；部分功能可能尚未包含在当前仓库代码或发布包中。
+
+<img src="docs/screenshots/node.png" alt="V2EX 节点列表" width="270"> <img src="docs/screenshots/search.png" alt="V2EX 搜索" width="270">
+
 ## 功能
 
 - 浏览主题、节点与分类，查看正文、回复和图片，发帖与回帖。
