@@ -1,0 +1,51 @@
+name: forum_app
+description: Android-first multi-forum reading prototype.
+publish_to: none
+version: 0.20.8+41
+environment:
+  sdk: '>=3.4.0 <4.0.0'
+dependencies:
+  flutter:
+    sdk: flutter
+  http: ^1.2.2
+  html: ^0.15.6
+  flutter_widget_from_html_core: ^0.16.0
+  url_launcher: ^6.3.1
+  webview_flutter: ^4.14.1
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/v2ex.png
+    - assets/linuxdo.png
+    - assets/exdo-icon.png
+    - assets/coins/
+    - assets/reply_styles/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

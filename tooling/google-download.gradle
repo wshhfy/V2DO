@@ -1,0 +1,19 @@
+import org.gradle.api.artifacts.repositories.MavenArtifactRepository
+
+def redirectGoogle = { repository ->
+    if (repository instanceof MavenArtifactRepository) {
+        def address = repository.url.toString()
+        if (address.startsWith('https://dl.google.com/dl/android/maven2') || address.startsWith('https://maven.google.com')) {
+            repository.url = uri('https://maven.aliyun.com/repository/google')
+        }
+    }
+}
+settingsEvaluated { settings ->
+    settings.pluginManagement.repositories.all(redirectGoogle)
+    settings.dependencyResolutionManagement.repositories.all(redirectGoogle)
+}
+allprojects {
+    repositories.all(redirectGoogle)
+    buildscript.repositories.all(redirectGoogle)
+}
+
