@@ -25,6 +25,7 @@ import 'relations.dart';
 import 'recent.dart';
 import 'v2_wallet.dart';
 import 'v2_thread_settings.dart';
+import 'v2_search.dart';
 
 class ThreadLines extends CustomPainter {
   final List<({int from, int to, int lane, Color color})> lines;
@@ -533,6 +534,7 @@ class _ForumSearchPageState extends State<ForumSearchPage> {
   String activeQuery = '', error = '';
   int page = 0, generation = 0;
   bool loading = false, more = false, searched = false;
+  int sovOffset = 0;
   late final Future<List<ForumSection>> nodes;
 
   @override
@@ -558,7 +560,36 @@ class _ForumSearchPageState extends State<ForumSearchPage> {
     final text = next ? activeQuery : query.text.trim();
     if (text.isEmpty || (next && loading)) return;
     if (!widget.forum.discourse) {
-      setState(() => searched = true);
+      final token = next ? generation : ++generation;
+      final offset = next ? sovOffset : 0;
+      setState(() {
+        loading = true;
+        error = '';
+        if (!next) {
+          activeQuery = text;
+          results = [];
+          more = false;
+          searched = true;
+        }
+      });
+      try {
+        final found = await Sov2exSearch.search(text, offset: offset);
+        if (!mounted || token != generation) return;
+        setState(() {
+          final ids = results.map((p) => p.id).toSet();
+          results.addAll(found.topics.where((p) => ids.add(p.id)));
+          sovOffset = offset + 20;
+          more = found.hasMore;
+          loading = false;
+        });
+      } catch (e) {
+        if (mounted && token == generation)
+          setState(() {
+            error = 'SoV2EX 搜索失败：$e';
+            loading = false;
+            more = false;
+          });
+      }
       return;
     }
     final token = next ? generation : ++generation;
@@ -624,8 +655,16 @@ class _ForumSearchPageState extends State<ForumSearchPage> {
             child: TextField(
                 controller: query,
                 autofocus: true,
-                onChanged:
-                    widget.forum.discourse ? null : (_) => setState(() {}),
+                onChanged: widget.forum.discourse
+                    ? null
+                    : (_) => setState(() {
+                          generation++;
+                          results = [];
+                          more = false;
+                          searched = false;
+                          error = '';
+                          loading = false;
+                        }),
                 textInputAction: TextInputAction.search,
                 onSubmitted: (_) => search(),
                 decoration: InputDecoration(
@@ -650,7 +689,7 @@ class _ForumSearchPageState extends State<ForumSearchPage> {
                       final name = text.substring(1).trim();
                       if (!RegExp(r'^[A-Za-z0-9_]{1,40}$').hasMatch(name))
                         return const Center(child: Text('请输入有效的用户名'));
-                      return ListView(children: [
+                      return ListView(controller: scroll, children: [
                         ListTile(
                             leading: const Icon(Icons.person_outline),
                             title: Text('@$name'),
@@ -689,9 +728,54 @@ class _ForumSearchPageState extends State<ForumSearchPage> {
                                         body: SafeArea(
                                             child: Feed(widget.forum,
                                                 initialSection: node)))))),
+                      Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Row(children: [
+                            FilledButton.tonalIcon(
+                                onPressed: loading ? null : () => search(),
+                                icon: const Icon(Icons.search, size: 18),
+                                label: const Text('SoV2EX 搜索帖子')),
+                          ])),
+                      if (searched) ...[
+                        const Padding(
+                            padding: EdgeInsets.fromLTRB(16, 16, 16, 4),
+                            child: Text('SoV2EX 帖子',
+                                style: TextStyle(fontWeight: FontWeight.bold))),
+                        if (error.isNotEmpty)
+                          Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: Text(error)),
+                        for (final topic in results)
+                          ListTile(
+                              title: Text(topic.title,
+                                  maxLines: 2, overflow: TextOverflow.ellipsis),
+                              subtitle: Text(
+                                  [topic.author, topic.activityExcerpt]
+                                      .where((s) => s.isNotEmpty)
+                                      .join(' · '),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis),
+                              trailing: TimeLabel(topic.createdAt),
+                              onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute<void>(
+                                      builder: (_) =>
+                                          TopicPage(widget.forum, topic)))),
+                        if (loading)
+                          const Center(
+                              child: Padding(
+                                  padding: EdgeInsets.all(16),
+                                  child: CircularProgressIndicator())),
+                        if (!loading && error.isEmpty && results.isEmpty)
+                          const ListTile(title: Text('没有找到帖子')),
+                        if (more && !loading)
+                          TextButton(
+                              onPressed: () => search(next: true),
+                              child: const Text('加载更多')),
+                      ],
                       const Padding(
                           padding: EdgeInsets.all(16),
-                          child: Text('此处显示官网搜索框中的节点和用户入口；帖子全文搜索暂不可用。',
+                          child: Text('SoV2EX 是第三方搜索服务，搜索结果和索引更新可能有所延迟。',
                               style: TextStyle(fontSize: 12)))
                     ]);
                   }))

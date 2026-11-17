@@ -4,7 +4,7 @@ V2DO 是一个使用 Flutter 开发的 V2EX 与 LINUX DO 第三方客户端，�
 
 ## 界面预览
 
-以下为 Android 开发版实机截图，展示 V2EX 节点和搜索；部分功能可能尚未包含在当前仓库代码或发布包中。
+以下为 Android 实机截图，展示 V2EX 节点和搜索。
 
 <img src="docs/screenshots/node.png" alt="V2EX 节点列表" width="270"> <img src="docs/screenshots/search.png" alt="V2EX 搜索" width="270">
 
@@ -13,7 +13,7 @@ V2DO 是一个使用 Flutter 开发的 V2EX 与 LINUX DO 第三方客户端，�
 - 浏览主题、节点与分类，查看正文、回复和图片，发帖与回帖。
 - 回复排序、只看楼主、楼中楼展示及折叠；支持站点所提供的回复关系。
 - 个人资料、收藏、消息、浏览记录；支持 V2EX 签到和余额记录。
-- LINUX DO 帖子搜索；V2EX 支持应用内节点和用户建议，暂不支持帖子全文搜索。
+- LINUX DO 帖子搜索；V2EX 支持应用内节点、用户建议和 SoV2EX 帖子搜索。
 - LINUX DO 图片上传；V2EX 编辑器支持登录 Imgur 后上传图片。
 - 主题颜色与深浅模式、图片预览与保存、启动论坛选择。
 
@@ -22,6 +22,14 @@ V2DO 是一个使用 Flutter 开发的 V2EX 与 LINUX DO 第三方客户端，�
 ## 平台状态
 
 Android 已构建并在设备上测试。iOS 尚无工程和平台接口实现，不能运行或发布。
+
+## 开发方式
+
+本项目全程使用 OpenAI Codex 协助开发，包括需求梳理、代码编写、测试和发布准备。具体额度消耗未单独统计，无法从账号的周期用量中准确拆分。
+
+## Android 安装包
+
+Release 提供通用 APK 和按 CPU 架构拆分的 APK。大多数现代 Android 手机可使用 `arm64-v8a`；较旧的 32 位 ARM 设备可使用 `armeabi-v7a`，部分模拟器可使用 `x86_64`。不确定架构时请选择通用包。所有正式 APK 使用相同应用 ID、版本号和签名。
 
 ## 构建与测试
 
