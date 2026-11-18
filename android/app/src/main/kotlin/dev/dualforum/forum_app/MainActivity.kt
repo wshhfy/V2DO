@@ -106,6 +106,31 @@ class MainActivity : FlutterActivity() {
         super.configureFlutterEngine(flutterEngine)
         userAgent = WebSettings.getDefaultUserAgent(this)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "dualforum/session").setMethodCallHandler { call, result ->
+            if (call.method == "updateDevice") {
+                result.success(mapOf("abis" to android.os.Build.SUPPORTED_ABIS.toList(), "supported" to (packageName == "dev.dualforum.forum_app.release")))
+                return@setMethodCallHandler
+            }
+            if (call.method == "installUpdate") {
+                val url = call.argument<String>("url") ?: ""
+                val version = call.argument<String>("version") ?: ""
+                val digest = call.argument<String>("digest") ?: ""
+                val size = call.argument<Number>("size")?.toLong() ?: 0L
+                executor.execute {
+                    try {
+                        val status = UpdateInstaller.install(this, url, version, digest, size)
+                        runOnUiThread { result.success(status) }
+                    } catch (e: Exception) {
+                        runOnUiThread { result.error("UPDATE", e.message ?: "更新失败，请稍后重试", null) }
+                    }
+                }
+                return@setMethodCallHandler
+            }
+            if (call.method == "updateInstallPermission") {
+                val intent = android.content.Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, android.net.Uri.parse("package:$packageName"))
+                startActivity(intent)
+                result.success(null)
+                return@setMethodCallHandler
+            }
             if (call.method == "resetApplication") {
                 try {
                     val manager = getSystemService(android.content.Context.ACTIVITY_SERVICE) as android.app.ActivityManager

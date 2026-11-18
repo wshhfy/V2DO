@@ -1,7 +1,7 @@
 name: forum_app
 description: Android-first multi-forum reading prototype.
 publish_to: none
-version: 0.20.12+45
+version: 0.20.13+46
 environment:
   sdk: '>=3.4.0 <4.0.0'
 dependencies:

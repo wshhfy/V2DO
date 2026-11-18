@@ -1,11 +1,13 @@
 import 'imgur_session.dart';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'site_view.dart';
 
-const appVersion = '0.20.12';
+const appVersion =
+    String.fromEnvironment('V2DO_VERSION_OVERRIDE', defaultValue: '0.20.13');
 const githubRepository = String.fromEnvironment('GITHUB_REPOSITORY');
 
 class AppPreferences extends ChangeNotifier {
@@ -49,7 +51,8 @@ class AppPreferences extends ChangeNotifier {
 class ReleaseInfo {
   final String version, notes;
   final Uri page;
-  const ReleaseInfo(this.version, this.notes, this.page);
+  final List<dynamic> assets;
+  const ReleaseInfo(this.version, this.notes, this.page, this.assets);
 }
 
 class AppUpdates {
@@ -99,12 +102,54 @@ class AppUpdates {
         page.host != 'github.com' ||
         !page.path.startsWith('/$githubRepository/releases/'))
       throw Exception('发布地址无效');
-    return ReleaseInfo(version, data['body'] as String? ?? '', page);
+    return ReleaseInfo(version, data['body'] as String? ?? '', page,
+        data['assets'] as List<dynamic>? ?? []);
+  }
+
+  static Map<String, dynamic> selectAsset(
+      ReleaseInfo release, List<String> abis) {
+    final version = release.version.replaceFirst(RegExp(r'^v'), '');
+    for (final abi in [...abis, 'universal']) {
+      if (!['arm64-v8a', 'armeabi-v7a', 'x86_64', 'universal'].contains(abi))
+        continue;
+      final name = 'V2DO-$version-$abi.apk';
+      for (final asset in release.assets) {
+        if (asset is! Map || asset['name'] != name) continue;
+        final url =
+            Uri.tryParse(asset['browser_download_url'] as String? ?? '');
+        final digest = asset['digest'] as String? ?? '';
+        final size = asset['size'];
+        if (url == null ||
+            url.scheme != 'https' ||
+            url.host != 'github.com' ||
+            url.path !=
+                '/$githubRepository/releases/download/${release.version}/$name' ||
+            url.hasQuery ||
+            url.hasFragment ||
+            !RegExp(r'^sha256:[a-f0-9]{64}$').hasMatch(digest) ||
+            size is! int ||
+            size <= 0 ||
+            size > 209715200) continue;
+        return {
+          'url': url.toString(),
+          'version': release.version,
+          'digest': digest.substring(7),
+          'size': size
+        };
+      }
+    }
+    throw Exception('没有找到适合本设备且可校验的更新包');
   }
 
   static Future<void> check(BuildContext context,
       {bool automatic = false}) async {
     final preferences = AppPreferences.instance;
+    if (defaultTargetPlatform != TargetPlatform.android) {
+      if (!automatic)
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('应用内更新目前仅支持 Android')));
+      return;
+    }
     if (busy) return;
     if (automatic &&
         (!configured ||
@@ -119,9 +164,9 @@ class AppUpdates {
     }
     busy = true;
     try {
+      final release = await latest();
       preferences.lastUpdateCheck = DateTime.now().millisecondsSinceEpoch;
       await preferences.save();
-      final release = await latest();
       if (!context.mounted) return;
       if (release == null) {
         if (!automatic)
@@ -129,29 +174,51 @@ class AppUpdates {
               .showSnackBar(const SnackBar(content: Text('当前已是最新正式版本')));
         return;
       }
-      await showDialog<void>(
-          context: context,
-          builder: (c) => AlertDialog(
-                  title: Text('发现新版本 ${release.version}'),
-                  content: SingleChildScrollView(
-                      child: Text(release.notes.isEmpty
-                          ? '可前往 GitHub 查看并下载新版。'
-                          : release.notes)),
-                  actions: [
-                    TextButton(
-                        onPressed: () => Navigator.pop(c),
-                        child: const Text('稍后')),
-                    FilledButton(
-                        onPressed: () {
-                          Navigator.pop(c);
-                          openExternal(release.page);
-                        },
-                        child: const Text('查看并下载'))
-                  ]));
+      final device = await AppPreferences.channel
+          .invokeMapMethod<String, dynamic>('updateDevice');
+      if (device?['supported'] != true) {
+        if (!automatic && context.mounted) throw Exception('仅正式版支持应用内更新');
+        return;
+      }
+      final asset =
+          selectAsset(release, (device!['abis'] as List).cast<String>());
+      if (!context.mounted) return;
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.showSnackBar(SnackBar(
+          duration: const Duration(minutes: 5),
+          content: Text('正在下载 ${release.version}，请稍候…')));
+      final status = await AppPreferences.channel
+          .invokeMethod<String>('installUpdate', asset);
+      messenger.hideCurrentSnackBar();
+      if (!context.mounted) return;
+      if (status == 'permission') {
+        final open = await showDialog<bool>(
+            context: context,
+            builder: (c) => AlertDialog(
+                    title: const Text('允许安装更新'),
+                    content:
+                        const Text('Android 需要允许 V2DO 安装应用。开启后返回应用，再点击检查更新。'),
+                    actions: [
+                      TextButton(
+                          onPressed: () => Navigator.pop(c, false),
+                          child: const Text('稍后')),
+                      FilledButton(
+                          onPressed: () => Navigator.pop(c, true),
+                          child: const Text('前往设置'))
+                    ]));
+        if (open == true)
+          await AppPreferences.channel
+              .invokeMethod<void>('updateInstallPermission');
+      } else {
+        messenger.showSnackBar(
+            const SnackBar(content: Text('更新包已下载，正在安装；如系统要求，请确认安装。')));
+      }
     } catch (e) {
-      if (!automatic && context.mounted)
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(e.toString().replaceFirst('Exception: ', ''))));
+      }
     } finally {
       busy = false;
     }

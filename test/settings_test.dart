@@ -60,6 +60,32 @@ void main() {
     expect(AppUpdates.newer('v1.0.0-rc.1', '0.6.0'), false);
     expect(AppUpdates.newer('unexpected', '0.6.0'), false);
   });
+  test('Selects a matching APK and rejects an untrusted download URL', () {
+    final base =
+        'https://github.com/$githubRepository/releases/download/v1.2.3';
+    final digest = 'sha256:${'a' * 64}';
+    final assets = [
+      {
+        'name': 'V2DO-1.2.3-universal.apk',
+        'browser_download_url': '$base/V2DO-1.2.3-universal.apk',
+        'digest': digest,
+        'size': 100
+      },
+      {
+        'name': 'V2DO-1.2.3-arm64-v8a.apk',
+        'browser_download_url': '$base/V2DO-1.2.3-arm64-v8a.apk',
+        'digest': digest,
+        'size': 50
+      },
+    ];
+    final release = ReleaseInfo('v1.2.3', '', Uri.parse(base), assets);
+    expect(AppUpdates.selectAsset(release, ['arm64-v8a'])['size'], 50);
+    expect(AppUpdates.selectAsset(release, ['unknown'])['size'], 100);
+    final invalid = ReleaseInfo('v1.2.3', '', Uri.parse(base), [
+      {...assets.first, 'browser_download_url': 'https://evil.example/file.apk'}
+    ]);
+    expect(() => AppUpdates.selectAsset(invalid, ['unknown']), throwsException);
+  });
   test('Appearance preferences restore Android signed ARGB and theme mode',
       () async {
     const channel = MethodChannel('dualforum/session');

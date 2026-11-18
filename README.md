@@ -44,7 +44,7 @@ flutter build apk --release
 
 Android release 构建从环境变量 `V2DO_KEYSTORE`、`V2DO_STORE_PASSWORD`、`V2DO_KEY_PASSWORD` 和 `V2DO_KEY_ALIAS` 读取签名配置。密钥和密码不得提交到仓库，应由维护者妥善备份。Debug 与正式包使用不同应用 ID 和签名，可以并存；登录状态和本地数据互不共享。
 
-应用内 GitHub Releases 更新检查需要构建时配置 `--dart-define=GITHUB_REPOSITORY=用户名/仓库名`；未配置时不会检查更新。
+Android 正式版的应用内更新使用 GitHub Releases，构建时需配置 `--dart-define=GITHUB_REPOSITORY=wshhfy/V2DO`。检查到新版后会选择适合设备架构的 APK，在应用内下载并校验摘要、包名和签名，再请求系统安装。Android 系统可能要求允许安装未知应用或确认安装；自动安装取决于系统策略。测试版与正式版应用标识不同，不会相互覆盖。未配置仓库时不会检查更新。
 
 ## 许可证与第三方内容
 
