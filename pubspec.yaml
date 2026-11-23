@@ -1,11 +1,13 @@
 name: forum_app
 description: Android-first multi-forum reading prototype.
 publish_to: none
-version: 0.20.13+46
+version: 0.20.15+55
 environment:
   sdk: '>=3.4.0 <4.0.0'
 dependencies:
   flutter:
+    sdk: flutter
+  flutter_localizations:
     sdk: flutter
   http: ^1.2.2
   html: ^0.15.6

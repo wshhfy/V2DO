@@ -1,3 +1,4 @@
+import 'ui_text.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'forum.dart';
@@ -145,10 +146,10 @@ class _RecentPageState extends State<RecentPage> {
         Row(children: [
           const SizedBox(width: 12),
           Expanded(
-              child: Text('${widget.forum.name} · 最近访问',
+              child: UiText('${widget.forum.name} · 最近访问',
                   style: const TextStyle(fontWeight: FontWeight.bold))),
           IconButton(
-              tooltip: '收起抽屉',
+              tooltip: uiTr(context, '收起抽屉'),
               onPressed: widget.back,
               icon: const Icon(Icons.chevron_left))
         ]),
@@ -160,7 +161,7 @@ class _RecentPageState extends State<RecentPage> {
                     child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 2),
                         child: ChoiceChip(
-                            label: Text(['浏览', '我的回复', '收藏'][i]),
+                            label: UiText(['浏览', '我的回复', '收藏'][i]),
                             selected: tab == i,
                             onSelected: (_) => setState(() => tab = i))))
             ])),
@@ -196,7 +197,8 @@ class _RecentPageState extends State<RecentPage> {
                                       button: true,
                                       selected: cloud == isCloud,
                                       child: Center(
-                                          child: Text(isCloud ? '网站记录' : '本地记录',
+                                          child: UiText(
+                                              isCloud ? '网站记录' : '本地记录',
                                               style: TextStyle(
                                                   fontSize: 13,
                                                   fontWeight: cloud == isCloud
@@ -242,7 +244,7 @@ class _RecentPageState extends State<RecentPage> {
                 if (rows.isEmpty)
                   const Padding(
                       padding: EdgeInsets.all(24),
-                      child: Text('本机最近读过的帖子会出现在这里。')),
+                      child: UiText('本机最近读过的帖子会出现在这里。')),
               ])),
           SliverList.builder(
               itemCount: rows.length,
@@ -346,7 +348,7 @@ class _RemoteActivityState extends State<_RemoteActivity> {
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Row(children: [
               Expanded(
-                  child: Text(
+                  child: UiText(
                       widget.kind == 'read'
                           ? (widget.forum.discourse
                               ? '网站已记录的阅读 · 同一账号跨设备'
@@ -354,7 +356,7 @@ class _RemoteActivityState extends State<_RemoteActivity> {
                           : '读取当前账号的网站记录',
                       style: const TextStyle(fontSize: 11))),
               IconButton(
-                  tooltip: '刷新列表',
+                  tooltip: uiTr(context, '刷新列表'),
                   onPressed: busy ? null : reload,
                   icon: const Icon(Icons.refresh, size: 20)),
             ])),
@@ -374,7 +376,7 @@ class _RemoteActivityState extends State<_RemoteActivity> {
                                     child: CircularProgressIndicator())
                                 : error != null
                                     ? Column(children: [
-                                        Text(error!,
+                                        UiText(error!,
                                             style:
                                                 const TextStyle(fontSize: 12)),
                                         TextButton(
@@ -383,14 +385,14 @@ class _RemoteActivityState extends State<_RemoteActivity> {
                                                 await widget.login();
                                               if (mounted) await load();
                                             },
-                                            child: Text(
+                                            child: UiText(
                                                 needsLogin ? '登录 / 验证' : '重试'))
                                       ])
                                     : more
                                         ? TextButton(
                                             onPressed: load,
-                                            child: const Text('加载更多'))
-                                        : Text(
+                                            child: const UiText('加载更多'))
+                                        : UiText(
                                             items.isEmpty ? '暂无记录' : '已显示全部记录',
                                             textAlign: TextAlign.center));
                       final t = items[i];

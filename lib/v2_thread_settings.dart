@@ -1,3 +1,4 @@
+import 'ui_text.dart';
 import 'package:flutter/material.dart';
 import 'package:html/dom.dart' as dom;
 import 'package:html/parser.dart' as html;
@@ -161,22 +162,22 @@ class _V2ThreadSettingsPageState extends State<V2ThreadSettingsPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-      appBar: AppBar(title: const Text('V2EX 回复样式'), actions: [
+      appBar: AppBar(title: const UiText('V2EX 回复样式'), actions: [
         IconButton(
             onPressed: busy ? null : refresh,
             icon: const Icon(Icons.refresh),
-            tooltip: '刷新')
+            tooltip: uiTr(context, '刷新'))
       ]),
       body: ListView(children: [
         const Padding(
             padding: EdgeInsets.all(16),
-            child: Text(
+            child: UiText(
                 '同步到 V2EX 网站设置；网页端和其他设备也会使用此选项。下方为官网样式示意图，点击图片放大；V2DO 移动端的展示不保证与官网完全相同。')),
         if (busy) const LinearProgressIndicator(),
         if (error != null)
           Padding(
               padding: const EdgeInsets.all(16),
-              child: Text(error!,
+              child: UiText(error!,
                   style:
                       TextStyle(color: Theme.of(context).colorScheme.error))),
         for (final item in threadStyles.entries)
@@ -186,7 +187,7 @@ class _V2ThreadSettingsPageState extends State<V2ThreadSettingsPage> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     ListTile(
-                        title: Text(item.value),
+                        title: UiText(item.value),
                         trailing: current == item.key
                             ? Icon(Icons.check,
                                 color: Theme.of(context).colorScheme.primary)
@@ -212,7 +213,7 @@ class _V2ThreadSettingsPageState extends State<V2ThreadSettingsPage> {
                                             right: 0,
                                             top: 0,
                                             child: IconButton(
-                                                tooltip: '关闭图片',
+                                                tooltip: uiTr(context, '关闭图片'),
                                                 icon: const Icon(Icons.close),
                                                 onPressed: () =>
                                                     Navigator.pop(c)))

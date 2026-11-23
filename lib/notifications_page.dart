@@ -1,3 +1,4 @@
+import 'ui_text.dart';
 import 'package:flutter/material.dart';
 import 'forum.dart';
 import 'notifications.dart';
@@ -58,11 +59,11 @@ class _NotificationsPageState extends State<NotificationsPage> {
           context: context,
           builder: (c) => AlertDialog(
                   title: Text(n.title),
-                  content: Text('${n.author} ${n.detail}\n\n这条通知没有关联主题。'),
+                  content: UiText('${n.author} ${n.detail}\n\n这条通知没有关联主题。'),
                   actions: [
                     TextButton(
                         onPressed: () => Navigator.pop(c),
-                        child: const Text('关闭'))
+                        child: const UiText('关闭'))
                   ]));
       opened = true;
     } else {
@@ -81,7 +82,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
     } catch (e) {
       if (mounted)
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('已打开主题，但已读状态同步失败：$e')));
+            .showSnackBar(SnackBar(content: UiText('已打开主题，但已读状态同步失败：$e')));
     }
   }
 
@@ -92,11 +93,11 @@ class _NotificationsPageState extends State<NotificationsPage> {
           title: Row(children: [
             ForumIcon(widget.forum),
             const SizedBox(width: 8),
-            const Text('消息')
+            const UiText('消息')
           ]),
           actions: [
             IconButton(
-                tooltip: '刷新消息',
+                tooltip: uiTr(context, '刷新消息'),
                 onPressed: busy ? null : () => load(reset: true),
                 icon: const Icon(Icons.refresh))
           ]),
@@ -105,7 +106,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
         if (!widget.forum.discourse)
           Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              child: Text('V2EX 打开消息列表后，网站会清除未读计数。',
+              child: UiText('V2EX 打开消息列表后，网站会清除未读计数。',
                   style: TextStyle(
                       fontSize: 11,
                       color: Theme.of(context).colorScheme.onSurfaceVariant))),
@@ -114,17 +115,17 @@ class _NotificationsPageState extends State<NotificationsPage> {
           Padding(
               padding: const EdgeInsets.all(12),
               child: Column(children: [
-                Text(error!),
+                UiText(error!),
                 Wrap(children: [
                   TextButton(
                       onPressed: () => load(reset: rows.isEmpty),
-                      child: const Text('重试')),
+                      child: const UiText('重试')),
                   TextButton(
                       onPressed: () async {
                         await authenticate(context, widget.forum);
                         load(reset: true);
                       },
-                      child: const Text('登录 / 验证'))
+                      child: const UiText('登录 / 验证'))
                 ])
               ])),
         Expanded(
@@ -138,7 +139,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                         return Padding(
                             padding: const EdgeInsets.all(20),
                             child: rows.isEmpty
-                                ? Text(
+                                ? UiText(
                                     busy
                                         ? '正在加载消息…'
                                         : error == null
@@ -148,8 +149,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
                                 : hasMore
                                     ? TextButton(
                                         onPressed: busy ? null : () => load(),
-                                        child: const Text('加载更多消息'))
-                                    : const Text('已显示全部消息',
+                                        child: const UiText('加载更多消息'))
+                                    : const UiText('已显示全部消息',
                                         textAlign: TextAlign.center));
                       final n = rows[i],
                           unread =
@@ -191,7 +192,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
                                                           ? FontWeight.w600
                                                           : FontWeight.w400)),
                                               const SizedBox(height: 4),
-                                              Text('${n.author} ${n.detail}',
+                                              Text(
+                                                  '${n.author} ${widget.forum.discourse ? uiTr(context, n.detail) : n.detail}',
                                                   maxLines: 3,
                                                   overflow:
                                                       TextOverflow.ellipsis,

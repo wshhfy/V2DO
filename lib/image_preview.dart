@@ -1,3 +1,4 @@
+import 'ui_text.dart';
 import 'package:flutter/material.dart';
 import 'dart:typed_data';
 import 'dart:collection';
@@ -100,7 +101,7 @@ class _GalleryState extends State<_Gallery> {
         builder: (c) => SafeArea(
             child: ListTile(
                 leading: const Icon(Icons.download_outlined),
-                title: const Text('保存原图到本地'),
+                title: const UiText('保存原图到本地'),
                 onTap: () => Navigator.pop(c, true))));
     if (accepted == true && mounted) await save(url);
   }
@@ -145,14 +146,14 @@ class _GalleryState extends State<_Gallery> {
             top: 0,
             right: 8,
             child: IconButton(
-                tooltip: '关闭图片',
+                tooltip: uiTr(context, '关闭图片'),
                 onPressed: () => Navigator.pop(context),
                 icon: const Icon(Icons.close, color: Colors.white))),
         Positioned(
             top: 0,
             right: 56,
             child: IconButton(
-                tooltip: saving ? '正在保存' : '保存原图',
+                tooltip: uiTr(context, saving ? '正在保存' : '保存原图'),
                 onPressed: saving ? null : () => save(widget.urls[index]),
                 icon: saving
                     ? const SizedBox(
@@ -179,7 +180,7 @@ class _GalleryState extends State<_Gallery> {
             right: 8,
             child: Row(children: [
               IconButton(
-                  tooltip: '上一张',
+                  tooltip: uiTr(context, '上一张'),
                   onPressed: index == 0
                       ? null
                       : () => pages.previousPage(
@@ -188,12 +189,12 @@ class _GalleryState extends State<_Gallery> {
                   icon: Icon(Icons.chevron_left,
                       color: index == 0 ? Colors.white24 : Colors.white)),
               Expanded(
-                  child: Text(zoomed ? '双击还原后可左右滑动' : '左右滑动切换 · 双指或双击缩放',
+                  child: UiText(zoomed ? '双击还原后可左右滑动' : '左右滑动切换 · 双指或双击缩放',
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                           color: Colors.white70, fontSize: 12))),
               IconButton(
-                  tooltip: '下一张',
+                  tooltip: uiTr(context, '下一张'),
                   onPressed: index == widget.urls.length - 1
                       ? null
                       : () => pages.nextPage(
@@ -262,11 +263,11 @@ class _ZoomImageState extends State<_ZoomImage> {
         if (snapshot.hasError)
           return Center(
               child: Column(mainAxisSize: MainAxisSize.min, children: [
-            const Text('图片加载失败', style: TextStyle(color: Colors.white)),
+            const UiText('图片加载失败', style: TextStyle(color: Colors.white)),
             TextButton(
                 onPressed: () =>
                     setState(() => bytes = widget.cache.load(widget.url)),
-                child: const Text('重试'))
+                child: const UiText('重试'))
           ]));
         if (!snapshot.hasData)
           return const Center(child: CircularProgressIndicator());
@@ -284,7 +285,7 @@ class _ZoomImageState extends State<_ZoomImage> {
                 child: Center(
                     child: Image.memory(snapshot.data!,
                         fit: BoxFit.contain,
-                        errorBuilder: (_, e, s) => const Text('无法解码图片',
+                        errorBuilder: (_, e, s) => const UiText('无法解码图片',
                             style: TextStyle(color: Colors.white))))));
       });
 }

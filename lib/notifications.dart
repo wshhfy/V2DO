@@ -45,17 +45,41 @@ class NoticeService {
     }
     final r = await forum.get('/');
     checkResponse(r);
-    return v2Count(r.body);
+    final mobile = v2CountOrNull(r.body);
+    if (mobile != null) return mobile;
+    // V2EX's compact mobile page may omit the right-hand unread counter.
+    // Request a desktop layout without opening /notifications, which marks it read.
+    final desktop = await forum.transport(forum.url('/'), headers: {
+      'Accept': 'text/html,application/json',
+      'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 '
+          '(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
+    });
+    checkResponse(desktop);
+    final count = v2CountOrNull(desktop.body);
+    if (count == null) throw const ForumError('暂时无法读取 V2EX 未读消息数');
+    return count;
   }
 
-  static int v2Count(String body) {
+  static int v2Count(String body) => v2CountOrNull(body) ?? 0;
+
+  static int? v2CountOrNull(String body) {
     final doc = html.parse(body);
-    for (final link in doc.querySelectorAll('a[href^="/notifications"]')) {
-      final match = RegExp(r'\d[\d,]*').firstMatch(link.text);
+    for (final link in doc.querySelectorAll('a[href]')) {
+      final uri = Uri.tryParse(link.attributes['href'] ?? '');
+      if (uri == null || uri.path != '/notifications') continue;
+      final label = [
+        link.text,
+        link.attributes['title'],
+        link.attributes['aria-label'],
+        link.attributes['data-count']
+      ].whereType<String>().join(' ');
+      final match = RegExp(r'\d[\d,]*').firstMatch(label);
       if (match != null)
-        return int.tryParse(match.group(0)!.replaceAll(',', '')) ?? 0;
+        return int.tryParse(match.group(0)!.replaceAll(',', ''));
     }
-    return 0;
+    final title = doc.querySelector('title')?.text ?? '';
+    final titleCount = RegExp(r'^\s*\((\d+)\)').firstMatch(title);
+    return titleCount == null ? null : int.tryParse(titleCount.group(1)!);
   }
 
   Future<NoticePage> list({int page = 0, int initialUnread = 0}) async {
@@ -120,6 +144,22 @@ class NoticeService {
       final uri = forum.url(link.attributes['href'] ?? '');
       final id = RegExp(r'^/t/(\d+)').firstMatch(uri.path);
       if (id == null) continue;
+      final timeNode = cell
+          .querySelector('.ago, .snow, time, [data-time], [data-timestamp]');
+      final rawTime = timeNode?.attributes['datetime'] ??
+          timeNode?.attributes['data-time'] ??
+          timeNode?.attributes['data-timestamp'] ??
+          timeNode?.attributes['title'] ??
+          '';
+      final fullLabel = timeNode?.text.trim() ?? '';
+      final fallbackText = cell.querySelector('.gray, .fade')?.text ?? '';
+      final timePattern = RegExp(
+          r'(?:刚刚|昨天|前天|\d+\s*(?:秒|分钟|小时|天|周|个月|年)\s*前|(?:\d+\s*[dhms]\s*)+ago|\d+\s*(?:seconds?|minutes?|hours?|days?|weeks?|months?|years?)\s+ago|\d{4}[-/]\d{1,2}[-/]\d{1,2}(?:\s+\d{1,2}:\d{2}(?::\d{2})?)?)',
+          caseSensitive: false);
+      final timeLabel = timePattern.firstMatch(fullLabel)?.group(0) ??
+          (fullLabel.isNotEmpty
+              ? fullLabel
+              : timePattern.firstMatch(fallbackText)?.group(0) ?? '');
       final author = cell
           .querySelectorAll('a[href^="/member/"]')
           .where((a) => a.text.trim().isNotEmpty)
@@ -139,8 +179,8 @@ class NoticeService {
           detail: cell.querySelector('.payload')?.text.trim() ??
               cell.querySelector('.fade')?.text.trim() ??
               '',
-          timeLabel: cell.querySelector('.ago')?.text.trim() ?? '',
-          createdAt: parseTime(cell.querySelector('.ago')?.attributes['title']),
+          timeLabel: timeLabel,
+          createdAt: parseTime(rawTime) ?? parseTime(num.tryParse(rawTime)),
           unread: page == 0 && rows.length < initialUnread));
     }
     final last = d
@@ -171,15 +211,19 @@ class UnreadMessages {
   static Future<void> refresh(Forum forum) async {
     final i = Accounts.index(forum),
         token = ++_generation[Accounts.index(forum)];
-    if (Accounts.states[i].value.account == null) {
-      counts[i].value = 0;
+    final state = Accounts.states[i].value;
+    if (state.account == null) {
+      if (state.verified) counts[i].value = 0;
       return;
     }
     try {
       final count = await NoticeService(forum).unreadCount();
       if (token == _generation[i]) counts[i].value = count;
     } catch (_) {
-      if (token == _generation[i]) counts[i].value = null;
+      // Keep a known positive count visible through transient network errors.
+      if (token == _generation[i] && (counts[i].value ?? 0) == 0) {
+        counts[i].value = null;
+      }
     }
   }
 }

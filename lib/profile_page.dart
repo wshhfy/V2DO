@@ -1,3 +1,4 @@
+import 'ui_text.dart';
 import 'package:flutter/material.dart';
 import 'account.dart';
 import 'forum.dart';
@@ -85,7 +86,7 @@ class _ProfilePageState extends State<ProfilePage> {
             ForumIcon(widget.forum),
             const SizedBox(width: 8),
             Expanded(
-                child: Text(own ? '我的资料' : widget.username,
+                child: UiText(own ? '我的资料' : widget.username,
                     maxLines: 1, overflow: TextOverflow.ellipsis))
           ])),
       body: SafeArea(
@@ -95,7 +96,7 @@ class _ProfilePageState extends State<ProfilePage> {
             builder: (context, s) {
               if (s.hasError)
                 return ListTile(
-                    title: Text(s.error.toString()),
+                    title: UiText(s.error.toString()),
                     trailing: IconButton(
                         onPressed: () => setState(() => profile =
                             ProfileService(widget.forum)
@@ -123,7 +124,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                   Text(p.name,
                                       maxLines: 2,
                                       overflow: TextOverflow.ellipsis),
-                                Text(
+                                UiText(
                                     [
                                       if (p.level != null) 'Lv${p.level}',
                                       if (p.id != null) '#${p.id}',
@@ -139,7 +140,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           ExpansionTile(
                               dense: true,
                               tilePadding: EdgeInsets.zero,
-                              title: const Text('个人简介',
+                              title: const UiText('个人简介',
                                   style: TextStyle(fontSize: 12)),
                               children: [
                                 if (p.bio.isNotEmpty) Text(p.bio),
@@ -169,24 +170,24 @@ class _ProfilePageState extends State<ProfilePage> {
                       setState(() => kind = entry.key);
                       load(reset: true);
                     },
-                    child: Text(entry.value)))
+                    child: UiText(entry.value)))
         ]),
         if (busy) const LinearProgressIndicator(),
         if (error != null)
           Padding(
               padding: const EdgeInsets.all(12),
               child: Column(children: [
-                Text(error!),
+                UiText(error!),
                 Wrap(children: [
                   TextButton(
                       onPressed: () => load(reset: true),
-                      child: const Text('重试')),
+                      child: const UiText('重试')),
                   TextButton(
                       onPressed: () async {
                         await authenticate(context, widget.forum);
                         if (mounted) load(reset: true);
                       },
-                      child: const Text('登录 / 验证'))
+                      child: const UiText('登录 / 验证'))
                 ])
               ])),
         Expanded(
@@ -204,8 +205,9 @@ class _ProfilePageState extends State<ProfilePage> {
                                 : more
                                     ? TextButton(
                                         onPressed: () => load(),
-                                        child: const Text('加载更多'))
-                                    : Text(rows.isEmpty ? '暂无公开内容' : '已显示全部内容',
+                                        child: const UiText('加载更多'))
+                                    : UiText(
+                                        rows.isEmpty ? '暂无公开内容' : '已显示全部内容',
                                         textAlign: TextAlign.center));
                       final t = rows[i];
                       return ListTile(

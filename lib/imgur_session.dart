@@ -1,3 +1,4 @@
+import 'ui_text.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:html/parser.dart' as html;
@@ -138,19 +139,19 @@ class _ImgurLoginPageState extends State<_ImgurLoginPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Imgur · 登录'), actions: [
+        appBar: AppBar(title: const UiText('Imgur · 登录'), actions: [
           TextButton(
               onPressed: checking ? null : finish,
-              child: Text(checking ? '验证中…' : '完成')),
+              child: UiText(checking ? '验证中…' : '完成')),
         ]),
         body: SafeArea(
             child: Column(children: [
           const Padding(
               padding: EdgeInsets.all(12),
-              child: Text(
+              child: UiText(
                   'Google 不允许在应用内嵌网页（WebView）中登录，因此这里无法直接使用 Google 登录。请使用 Imgur 账号和密码登录；外部浏览器的登录状态无法同步到 V2DO。')),
           if (error != null)
-            Padding(padding: const EdgeInsets.all(12), child: Text(error!)),
+            Padding(padding: const EdgeInsets.all(12), child: UiText(error!)),
           Expanded(
               child: SiteView(Uri.https('imgur.com', '/signin'),
                   imgurLogin: true)),
@@ -175,18 +176,18 @@ class _ImgurAccountPageState extends State<ImgurAccountPage> {
   bool signingOut = false;
   @override
   Widget build(BuildContext context) => Scaffold(
-      appBar: AppBar(title: const Text('Imgur 图片上传')),
+      appBar: AppBar(title: const UiText('Imgur 图片上传')),
       body: Padding(
           padding: const EdgeInsets.all(20),
           child: SingleChildScrollView(
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                const Text('网页登录上传',
+                const UiText('网页登录上传',
                     style:
                         TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 12),
-                const Text(
+                const UiText(
                     '请使用 Imgur 账号和密码登录。Google 不允许在应用内嵌网页（WebView）中进行 Google 登录，因此这里无法直接使用“使用 Google 登录”。登录成功后可在原生编辑器选图并确认上传。网站改版或要求验证时可能不可用。'),
                 const SizedBox(height: 20),
                 FutureBuilder<ImgurAccount?>(
@@ -204,10 +205,10 @@ class _ImgurAccountPageState extends State<ImgurAccountPage> {
                                     child: CircularProgressIndicator(
                                         strokeWidth: 2)),
                                 SizedBox(width: 10),
-                                Expanded(child: Text('正在检查 Imgur 登录状态…'))
+                                Expanded(child: UiText('正在检查 Imgur 登录状态…'))
                               ])
                             else
-                              Text(s.hasError
+                              UiText(s.hasError
                                   ? '${s.error}'
                                   : s.data == null
                                       ? '尚未连接 Imgur 账号'
@@ -227,7 +228,7 @@ class _ImgurAccountPageState extends State<ImgurAccountPage> {
                                               ScaffoldMessenger.of(context)
                                                   .showSnackBar(SnackBar(
                                                       content:
-                                                          Text('退出失败：$e')));
+                                                          UiText('退出失败：$e')));
                                           } finally {
                                             if (mounted)
                                               setState(() {
@@ -243,7 +244,7 @@ class _ImgurAccountPageState extends State<ImgurAccountPage> {
                                         if (mounted)
                                           setState(() => state = check());
                                       },
-                                child: Text(signingOut
+                                child: UiText(signingOut
                                     ? '正在退出…'
                                     : s.data != null && !s.hasError
                                         ? '退出登录'
@@ -252,7 +253,7 @@ class _ImgurAccountPageState extends State<ImgurAccountPage> {
                                 onPressed: waiting || signingOut
                                     ? null
                                     : () => setState(() => state = check()),
-                                child: const Text('刷新状态')),
+                                child: const UiText('刷新状态')),
                           ]);
                     }),
               ]))));

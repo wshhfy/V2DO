@@ -1,3 +1,4 @@
+import 'ui_text.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -67,7 +68,7 @@ class _SiteViewState extends State<SiteView> {
             color: Theme.of(context).colorScheme.surfaceContainerLow,
             child: Row(children: [
               IconButton(
-                  tooltip: '网页后退',
+                  tooltip: uiTr(context, '网页后退'),
                   icon: const Icon(Icons.arrow_back),
                   onPressed: () async {
                     if (await controller.canGoBack()) await controller.goBack();
@@ -76,24 +77,24 @@ class _SiteViewState extends State<SiteView> {
                   child:
                       Text(currentUrl.host, overflow: TextOverflow.ellipsis)),
               IconButton(
-                  tooltip: '网页首页',
+                  tooltip: uiTr(context, '网页首页'),
                   icon: const Icon(Icons.home_outlined),
                   onPressed: () => controller.loadRequest(widget.initialUrl)),
               IconButton(
-                  tooltip: '刷新网页',
+                  tooltip: uiTr(context, '刷新网页'),
                   icon: const Icon(Icons.refresh),
                   onPressed: () {
                     setState(() => error = null);
                     controller.reload();
                   }),
               IconButton(
-                  tooltip: '用浏览器打开',
+                  tooltip: uiTr(context, '用浏览器打开'),
                   icon: const Icon(Icons.open_in_browser),
                   onPressed: () => openExternal(currentUrl)),
             ])),
         if (progress < 100) LinearProgressIndicator(value: progress / 100),
         if (error != null)
-          Padding(padding: const EdgeInsets.all(12), child: Text(error!)),
+          Padding(padding: const EdgeInsets.all(12), child: UiText(error!)),
         Expanded(child: WebViewWidget(controller: controller)),
       ]);
 }

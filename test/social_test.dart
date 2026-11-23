@@ -171,6 +171,27 @@ void main() {
     expect(r.topics.single.id, 23);
     expect(r.more, true);
   });
+  test('V2EX profile topics and bookmarks use topic time, not unrelated titles',
+      () {
+    const row = '''<div class="cell">
+      <div class="fr"><span title="2020-01-01 00:00:00 +08:00">9</span></div>
+      <span class="item_title"><a class="topic-link" href="/t/23">主题</a></span>
+      <span class="topic_info"><a class="node" href="/go/test">Test</a> •
+      <span title="2026-11-19 13:16:44 +08:00">4 days ago</span></span>
+    </div>''';
+    final topic = ProfileService(forums[0]).parseV2Activity(row).topics.single;
+    expect(topic.createdAt, DateTime.parse('2026-11-19T05:16:44Z'));
+    expect(topic.activityTimeLabel, '4 days ago');
+  });
+  test('V2EX profile keeps relative time when no timestamp is available', () {
+    const row = '''<div class="cell">
+      <span class="item_title"><a href="/t/24">收藏</a></span>
+      <span class="topic_info"><span class="ago">3 小时前</span></span>
+    </div>''';
+    final topic = ProfileService(forums[0]).parseV2Activity(row).topics.single;
+    expect(topic.createdAt, isNull);
+    expect(topic.activityTimeLabel, '3 小时前');
+  });
   test('V2EX thank button accepts current two-argument handler', () {
     final state = SocialService.parseV2(
         '<a onclick="thankTopic(23, 123)">感谢</a><script>var once = 123;</script>',

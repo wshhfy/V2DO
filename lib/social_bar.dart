@@ -1,3 +1,4 @@
+import 'ui_text.dart';
 import 'package:flutter/material.dart';
 import 'forum.dart';
 import 'social.dart';
@@ -44,15 +45,15 @@ class _SocialBarState extends State<SocialBar> {
       final accepted = await showDialog<bool>(
           context: context,
           builder: (c) => AlertDialog(
-                  title: const Text('发送感谢？'),
-                  content: const Text('V2EX 感谢会按网站规则消耗铜币，发送后不能撤回。'),
+                  title: const UiText('发送感谢？'),
+                  content: const UiText('V2EX 感谢会按网站规则消耗铜币，发送后不能撤回。'),
                   actions: [
                     TextButton(
                         onPressed: () => Navigator.pop(c, false),
-                        child: const Text('取消')),
+                        child: const UiText('取消')),
                     FilledButton(
                         onPressed: () => Navigator.pop(c, true),
-                        child: const Text('感谢'))
+                        child: const UiText('感谢'))
                   ]));
       if (accepted != true || !mounted) return;
     }
@@ -68,7 +69,7 @@ class _SocialBarState extends State<SocialBar> {
     } catch (e) {
       if (mounted)
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.toString())));
+            .showSnackBar(SnackBar(content: UiText(e.toString())));
     } finally {
       if (mounted) setState(() => busy = false);
     }
@@ -82,7 +83,7 @@ class _SocialBarState extends State<SocialBar> {
             (value?.votes ?? 0) > 0)
           Padding(
               padding: const EdgeInsets.only(right: 8),
-              child: Text('赞同 ${value!.votes}',
+              child: UiText('赞同 ${value!.votes}',
                   style: const TextStyle(fontSize: 12))),
         if (widget.original)
           TextButton.icon(
@@ -93,7 +94,7 @@ class _SocialBarState extends State<SocialBar> {
                       ? Icons.bookmark
                       : Icons.bookmark_border,
                   size: 18),
-              label: Text(value?.bookmarked == true ? '已收藏' : '收藏',
+              label: UiText(value?.bookmarked == true ? '已收藏' : '收藏',
                   style: const TextStyle(fontSize: 12))),
         TextButton.icon(
             style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
@@ -101,7 +102,7 @@ class _SocialBarState extends State<SocialBar> {
             icon: Icon(
                 value?.liked == true ? Icons.favorite : Icons.favorite_border,
                 size: 16),
-            label: Text(
+            label: UiText(
                 busy
                     ? '处理中…'
                     : widget.forum.discourse

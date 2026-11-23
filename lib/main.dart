@@ -1,7 +1,9 @@
+import 'ui_text.dart';
 import 'package:html/parser.dart' as html_parser;
 import 'imgur_session.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_widget_from_html_core/flutter_widget_from_html_core.dart';
 import 'forum.dart';
 import 'avatar.dart';
@@ -163,11 +165,24 @@ class ForumApp extends StatelessWidget {
       listenable: AppPreferences.instance,
       builder: (context, _) => MaterialApp(
           title: 'V2DO',
+          locale: Locale(AppPreferences.instance.language),
+          supportedLocales: const [Locale('zh'), Locale('en')],
+          localizationsDelegates: GlobalMaterialLocalizations.delegates,
           themeMode: AppPreferences.instance.mode,
           scrollBehavior: const ExdoScrollBehavior(),
-          builder: (context, child) => const bool.fromEnvironment('PERF_TRACE')
-              ? PerfProbe(child: child!)
-              : child!,
+          builder: (context, child) {
+            final systemScaler = MediaQuery.textScalerOf(context);
+            final content = MediaQuery(
+              data: MediaQuery.of(context).copyWith(
+                textScaler: AppTextScaler(
+                    systemScaler, AppPreferences.instance.fontScale),
+              ),
+              child: child!,
+            );
+            return const bool.fromEnvironment('PERF_TRACE')
+                ? PerfProbe(child: content)
+                : content;
+          },
           debugShowCheckedModeBanner: false,
           theme: ThemeData(
               useMaterial3: true,
@@ -179,15 +194,27 @@ class ForumApp extends StatelessWidget {
           home: const HomePage()));
 }
 
+class AppTextScaler extends TextScaler {
+  const AppTextScaler(this.system, this.factor);
+  final TextScaler system;
+  final double factor;
+
+  @override
+  double scale(double fontSize) => system.scale(fontSize) * factor;
+
+  @override
+  double get textScaleFactor => system.scale(1) * factor;
+}
+
 Future<void> authenticate(BuildContext context, Forum forum) async {
   await Navigator.push(
       context,
       MaterialPageRoute<void>(
           builder: (_) => Scaffold(
-              appBar: AppBar(title: Text('${forum.name} · 登录与验证'), actions: [
+              appBar: AppBar(title: UiText('${forum.name} · 登录与验证'), actions: [
                 TextButton(
                     onPressed: () => Navigator.pop(context),
-                    child: const Text('完成'))
+                    child: const UiText('完成'))
               ]),
               body: SafeArea(
                   child: SiteView(
@@ -207,8 +234,8 @@ Future<void> showCheckIn(BuildContext context) async {
     message = 'V2EX 自动签到：$e';
   }
   if (context.mounted && message != null)
-    ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message), duration: const Duration(seconds: 6)));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: UiText(message), duration: const Duration(seconds: 6)));
 }
 
 class HomePage extends StatefulWidget {
@@ -282,47 +309,47 @@ class _HomeState extends State<HomePage> with WidgetsBindingObserver {
               ListTile(
                   leading: UserAvatar(state.account?.avatar ?? '',
                       state.account?.username ?? ''),
-                  title: Text(state.account?.username ?? '账号'),
-                  subtitle: Text(state.verified && state.account != null
+                  title: UiText(state.account?.username ?? '账号'),
+                  subtitle: UiText(state.verified && state.account != null
                       ? '${forum.name} · 已登录'
                       : forum.name)),
               ListTile(
                   leading: const Icon(Icons.refresh),
-                  title: const Text('刷新登录状态'),
+                  title: const UiText('刷新登录状态'),
                   onTap: () => Navigator.pop(c, 'refresh')),
               if (state.account != null) ...[
                 ListTile(
                     leading: const Icon(Icons.person_outline),
-                    title: const Text('我的资料与主题'),
+                    title: const UiText('我的资料与主题'),
                     onTap: () => Navigator.pop(c, 'profile')),
                 if (!forum.discourse)
                   ListTile(
                       leading:
                           const Icon(Icons.account_balance_wallet_outlined),
-                      title: const Text('签到与余额'),
+                      title: const UiText('签到与余额'),
                       onTap: () => Navigator.pop(c, 'wallet')),
                 ListTile(
                     leading: const Icon(Icons.bookmark_outline),
-                    title: const Text('我的收藏'),
+                    title: const UiText('我的收藏'),
                     onTap: () => Navigator.pop(c, 'bookmarks')),
                 if (!forum.discourse)
                   ListTile(
                       leading: const Icon(Icons.people_outline),
-                      title: const Text('我的关注'),
+                      title: const UiText('我的关注'),
                       onTap: () => Navigator.pop(c, 'relations')),
                 ListTile(
                     leading: const Icon(Icons.switch_account_outlined),
-                    title: const Text('切换账号'),
-                    subtitle: const Text('退出当前账号并打开登录页'),
+                    title: const UiText('切换账号'),
+                    subtitle: const UiText('退出当前账号并打开登录页'),
                     onTap: () => Navigator.pop(c, 'switch')),
                 ListTile(
                     leading: const Icon(Icons.logout),
-                    title: Text('退出 ${forum.name}'),
+                    title: UiText('退出 ${forum.name}'),
                     onTap: () => Navigator.pop(c, 'logout')),
               ] else
                 ListTile(
                     leading: const Icon(Icons.login),
-                    title: const Text('登录 / 验证'),
+                    title: const UiText('登录 / 验证'),
                     onTap: () => Navigator.pop(c, 'login')),
             ])));
     if (action == null || !mounted) return;
@@ -361,7 +388,7 @@ class _HomeState extends State<HomePage> with WidgetsBindingObserver {
     setState(() => accountBusy = true);
     try {
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('正在退出账号…')));
+          .showSnackBar(const SnackBar(content: UiText('正在退出账号…')));
       await Accounts.logout(forum);
       await UnreadMessages.refresh(forum);
       _ComposerState.drafts
@@ -374,12 +401,12 @@ class _HomeState extends State<HomePage> with WidgetsBindingObserver {
         keys[i].currentState?.reload();
       } else {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('已退出 ${forum.name}')));
+            .showSnackBar(SnackBar(content: UiText('已退出 ${forum.name}')));
       }
     } catch (e) {
       if (mounted)
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.toString())));
+            .showSnackBar(SnackBar(content: UiText(e.toString())));
     } finally {
       if (mounted) setState(() => accountBusy = false);
     }
@@ -419,7 +446,8 @@ class _HomeState extends State<HomePage> with WidgetsBindingObserver {
             ValueListenableBuilder<int?>(
                 valueListenable: UnreadMessages.counts[selected],
                 builder: (context, count, _) => IconButton(
-                    tooltip: count == null ? '消息 · 未读数待刷新' : '消息 · $count 条未读',
+                    tooltip: uiTr(context,
+                        count == null ? '消息 · 未读数待刷新' : '消息 · $count 条未读'),
                     icon: Badge(
                         isLabelVisible: count != null && count > 0,
                         label: Text(count != null && count > 99
@@ -448,11 +476,11 @@ class _HomeState extends State<HomePage> with WidgetsBindingObserver {
                         : const Icon(Icons.account_circle_outlined, size: 22),
                     label: ConstrainedBox(
                         constraints: const BoxConstraints(maxWidth: 75),
-                        child: Text(state.label,
+                        child: UiText(state.label,
                             maxLines: 1, overflow: TextOverflow.ellipsis)),
                     onPressed: () => accountMenu(selected))),
             IconButton(
-                tooltip: '应用设置',
+                tooltip: uiTr(context, '应用设置'),
                 icon: const Icon(Icons.settings_outlined, size: 22),
                 onPressed: () => Navigator.push(
                     context,
@@ -476,7 +504,7 @@ class _HomeState extends State<HomePage> with WidgetsBindingObserver {
       floatingActionButton: Column(mainAxisSize: MainAxisSize.min, children: [
         FloatingActionButton.small(
             heroTag: 'search',
-            tooltip: '搜索',
+            tooltip: uiTr(context, '搜索'),
             onPressed: () => Navigator.push(
                 context,
                 MaterialPageRoute<void>(
@@ -485,7 +513,7 @@ class _HomeState extends State<HomePage> with WidgetsBindingObserver {
         const SizedBox(height: 8),
         FloatingActionButton.small(
             heroTag: 'compose',
-            tooltip: '发帖',
+            tooltip: uiTr(context, '发帖'),
             child: const Icon(Icons.edit_outlined),
             onPressed: () async {
               final forum = forums[selected];
@@ -648,7 +676,7 @@ class _ForumSearchPageState extends State<ForumSearchPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-      appBar: AppBar(title: Text('${widget.forum.name} 搜索')),
+      appBar: AppBar(title: UiText('${widget.forum.name} 搜索')),
       body: Column(children: [
         Padding(
             padding: const EdgeInsets.all(12),
@@ -668,15 +696,16 @@ class _ForumSearchPageState extends State<ForumSearchPage> {
                 textInputAction: TextInputAction.search,
                 onSubmitted: (_) => search(),
                 decoration: InputDecoration(
-                    hintText: widget.forum.discourse ? '搜索帖子' : '搜索节点，或输入 @用户名',
+                    hintText: uiTr(context,
+                        widget.forum.discourse ? '搜索帖子' : '搜索节点，或输入 @用户名'),
                     prefixIcon: const Icon(Icons.search),
                     suffixIcon: IconButton(
-                        tooltip: '搜索',
+                        tooltip: uiTr(context, '搜索'),
                         onPressed: search,
                         icon: const Icon(Icons.arrow_forward)),
                     border: const OutlineInputBorder()))),
         if (error.isNotEmpty)
-          Padding(padding: const EdgeInsets.all(12), child: Text(error)),
+          Padding(padding: const EdgeInsets.all(12), child: UiText(error)),
         if (!widget.forum.discourse)
           Expanded(
               child: FutureBuilder<List<ForumSection>>(
@@ -684,16 +713,16 @@ class _ForumSearchPageState extends State<ForumSearchPage> {
                   builder: (context, snapshot) {
                     final text = query.text.trim();
                     if (text.isEmpty)
-                      return const Center(child: Text('输入节点名称或 @用户名'));
+                      return const Center(child: UiText('输入节点名称或 @用户名'));
                     if (text.startsWith('@')) {
                       final name = text.substring(1).trim();
                       if (!RegExp(r'^[A-Za-z0-9_]{1,40}$').hasMatch(name))
-                        return const Center(child: Text('请输入有效的用户名'));
+                        return const Center(child: UiText('请输入有效的用户名'));
                       return ListView(controller: scroll, children: [
                         ListTile(
                             leading: const Icon(Icons.person_outline),
                             title: Text('@$name'),
-                            subtitle: const Text('查看用户资料'),
+                            subtitle: const UiText('查看用户资料'),
                             onTap: () =>
                                 openMember(context, widget.forum, name))
                       ]);
@@ -701,7 +730,7 @@ class _ForumSearchPageState extends State<ForumSearchPage> {
                     if (snapshot.connectionState != ConnectionState.done)
                       return const Center(child: CircularProgressIndicator());
                     if (snapshot.hasError)
-                      return const Center(child: Text('节点列表加载失败，请稍后重试'));
+                      return const Center(child: UiText('节点列表加载失败，请稍后重试'));
                     final lower = text.toLowerCase();
                     final matches = (snapshot.data ?? [])
                         .where((s) =>
@@ -711,10 +740,10 @@ class _ForumSearchPageState extends State<ForumSearchPage> {
                     return ListView(children: [
                       const Padding(
                           padding: EdgeInsets.fromLTRB(16, 12, 16, 6),
-                          child: Text('节点',
+                          child: UiText('节点',
                               style: TextStyle(fontWeight: FontWeight.bold))),
                       if (matches.isEmpty)
-                        const ListTile(title: Text('没有匹配的节点')),
+                        const ListTile(title: UiText('没有匹配的节点')),
                       for (final node in matches.take(30))
                         ListTile(
                             leading: const Icon(Icons.tag),
@@ -734,17 +763,17 @@ class _ForumSearchPageState extends State<ForumSearchPage> {
                             FilledButton.tonalIcon(
                                 onPressed: loading ? null : () => search(),
                                 icon: const Icon(Icons.search, size: 18),
-                                label: const Text('SoV2EX 搜索帖子')),
+                                label: const UiText('SoV2EX 搜索帖子')),
                           ])),
                       if (searched) ...[
                         const Padding(
                             padding: EdgeInsets.fromLTRB(16, 16, 16, 4),
-                            child: Text('SoV2EX 帖子',
+                            child: UiText('SoV2EX 帖子',
                                 style: TextStyle(fontWeight: FontWeight.bold))),
                         if (error.isNotEmpty)
                           Padding(
                               padding: const EdgeInsets.all(12),
-                              child: Text(error)),
+                              child: UiText(error)),
                         for (final topic in results)
                           ListTile(
                               title: Text(topic.title,
@@ -767,15 +796,15 @@ class _ForumSearchPageState extends State<ForumSearchPage> {
                                   padding: EdgeInsets.all(16),
                                   child: CircularProgressIndicator())),
                         if (!loading && error.isEmpty && results.isEmpty)
-                          const ListTile(title: Text('没有找到帖子')),
+                          const ListTile(title: UiText('没有找到帖子')),
                         if (more && !loading)
                           TextButton(
                               onPressed: () => search(next: true),
-                              child: const Text('加载更多')),
+                              child: const UiText('加载更多')),
                       ],
                       const Padding(
                           padding: EdgeInsets.all(16),
-                          child: Text('SoV2EX 是第三方搜索服务，搜索结果和索引更新可能有所延迟。',
+                          child: UiText('SoV2EX 是第三方搜索服务，搜索结果和索引更新可能有所延迟。',
                               style: TextStyle(fontSize: 12)))
                     ]);
                   }))
@@ -791,7 +820,7 @@ class _ForumSearchPageState extends State<ForumSearchPage> {
                           child: Center(
                               child: loading
                                   ? const CircularProgressIndicator()
-                                  : Text(searched &&
+                                  : UiText(searched &&
                                           results.isEmpty &&
                                           error.isEmpty
                                       ? '没有找到结果'
@@ -837,7 +866,7 @@ class _FeedTab extends StatelessWidget {
                       : null,
                   padding: const EdgeInsets.symmetric(horizontal: 9)),
               onPressed: onPressed,
-              child: Text(label))));
+              child: UiText(label))));
 }
 
 class Feed extends StatefulWidget {
@@ -973,7 +1002,7 @@ class _FeedState extends State<Feed> with AutomaticKeepAliveClientMixin {
       if (mounted && token == generation) {
         setState(() => moreFailed = true);
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.toString())));
+            .showSnackBar(SnackBar(content: UiText(e.toString())));
       }
     } finally {
       if (mounted && token == generation) setState(() => more = false);
@@ -1030,7 +1059,7 @@ class _FeedState extends State<Feed> with AutomaticKeepAliveClientMixin {
               TextButton.icon(
                   onPressed: pickSection,
                   icon: const Icon(Icons.apps, size: 17),
-                  label: const Text('全部节点'))
+                  label: const UiText('全部节点'))
             ])),
       if (widget.forum.discourse)
         Padding(
@@ -1060,7 +1089,7 @@ class _FeedState extends State<Feed> with AutomaticKeepAliveClientMixin {
                   child: TextButton.icon(
                       onPressed: pickSection,
                       icon: const Icon(Icons.expand_more, size: 18),
-                      label: Text(
+                      label: UiText(
                           section?.name ??
                               (widget.forum.discourse ? '分类 / 标签' : '全部节点'),
                           maxLines: 1,
@@ -1077,7 +1106,12 @@ class _FeedState extends State<Feed> with AutomaticKeepAliveClientMixin {
                           .then((_) => reload()),
                       needsLogin: errorNeedsLogin)
                   : RefreshIndicator(
-                      onRefresh: reload,
+                      onRefresh: () async {
+                        await Future.wait([
+                          reload(),
+                          UnreadMessages.refresh(widget.forum),
+                        ]);
+                      },
                       child: ListView.builder(
                           controller: scroll,
                           physics: const AlwaysScrollableScrollPhysics(),
@@ -1090,12 +1124,12 @@ class _FeedState extends State<Feed> with AutomaticKeepAliveClientMixin {
                                   child: hasMore
                                       ? TextButton(
                                           onPressed: more ? null : loadMore,
-                                          child: Text(more
+                                          child: UiText(more
                                               ? '正在加载…'
                                               : moreFailed
                                                   ? '加载失败，点击重试'
                                                   : '加载更多主题'))
-                                      : Text(
+                                      : UiText(
                                           topics.isEmpty
                                               ? '暂无主题'
                                               : '已显示本次返回的全部主题',
@@ -1331,7 +1365,7 @@ class _TopicState extends State<TopicPage> with TickerProviderStateMixin {
     if (!mounted) return;
     if (target == null || data?.posts.any((p) => p.id == target) != true) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('未找到可访问的上层回复')));
+          .showSnackBar(const SnackBar(content: UiText('未找到可访问的上层回复')));
       return;
     }
     setState(() {
@@ -1367,7 +1401,7 @@ class _TopicState extends State<TopicPage> with TickerProviderStateMixin {
     }
     if (mounted)
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('未能定位该回复，请继续滚动查看')));
+          .showSnackBar(const SnackBar(content: UiText('未能定位该回复，请继续滚动查看')));
   }
 
   late final pageSlide = AnimationController.unbounded(vsync: this);
@@ -1667,7 +1701,7 @@ class _TopicState extends State<TopicPage> with TickerProviderStateMixin {
       if (mounted && token == generation) {
         setState(() => moreFailed = true);
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.toString())));
+            .showSnackBar(SnackBar(content: UiText(e.toString())));
       }
     } finally {
       if (mounted && token == generation) {
@@ -1712,7 +1746,7 @@ class _TopicState extends State<TopicPage> with TickerProviderStateMixin {
                     dense: true,
                     tilePadding: EdgeInsets.zero,
                     childrenPadding: const EdgeInsets.only(left: 10, bottom: 6),
-                    title: const Text('引用内容', style: TextStyle(fontSize: 12)),
+                    title: const UiText('引用内容', style: TextStyle(fontSize: 12)),
                     children: [render(element.innerHtml)]);
               }
               return null;
@@ -1785,7 +1819,7 @@ class _TopicState extends State<TopicPage> with TickerProviderStateMixin {
                 child: FilledButton.icon(
                     onPressed: () {},
                     icon: const Icon(Icons.edit_outlined),
-                    label: const Text('写回复')))),
+                    label: const UiText('写回复')))),
         body: SafeArea(
             child: ListView(
                 physics: const NeverScrollableScrollPhysics(),
@@ -1891,7 +1925,7 @@ class _TopicState extends State<TopicPage> with TickerProviderStateMixin {
                                         onPressed: () {},
                                         icon: const Icon(Icons.bookmark_border,
                                             size: 18),
-                                        label: const Text('收藏',
+                                        label: const UiText('收藏',
                                             style: TextStyle(fontSize: 12))),
                                     TextButton.icon(
                                         style: TextButton.styleFrom(
@@ -1900,7 +1934,7 @@ class _TopicState extends State<TopicPage> with TickerProviderStateMixin {
                                         onPressed: () {},
                                         icon: const Icon(Icons.favorite_border,
                                             size: 16),
-                                        label: Text(
+                                        label: UiText(
                                             widget.forum.discourse ? '赞' : '感谢',
                                             style:
                                                 const TextStyle(fontSize: 12))),
@@ -1909,7 +1943,7 @@ class _TopicState extends State<TopicPage> with TickerProviderStateMixin {
                       ])),
               if (preview != null) ...[
                 const SizedBox(height: 16),
-                Text('回复 · ' + preview.posts.length.toString(),
+                UiText('回复 · ' + preview.posts.length.toString(),
                     style: const TextStyle(
                         fontSize: 12, fontWeight: FontWeight.w600)),
                 for (final post in preview.posts.take(3))
@@ -2027,7 +2061,7 @@ class _TopicState extends State<TopicPage> with TickerProviderStateMixin {
             valueListenable: showBackToTop,
             builder: (context, visible, _) => visible
                 ? FloatingActionButton.small(
-                    tooltip: '回到顶部',
+                    tooltip: uiTr(context, '回到顶部'),
                     onPressed: () {
                       if (scroll.hasClients)
                         scroll.animateTo(0,
@@ -2047,7 +2081,7 @@ class _TopicState extends State<TopicPage> with TickerProviderStateMixin {
                           p.parentId != null &&
                           ['c', 'd'].contains(p.threadStyle))))
                 PopupMenuButton<String>(
-                    tooltip: '回复展开选项',
+                    tooltip: uiTr(context, '回复展开选项'),
                     constraints:
                         const BoxConstraints(minWidth: 0, maxWidth: 148),
                     onSelected: (value) async {
@@ -2082,7 +2116,7 @@ class _TopicState extends State<TopicPage> with TickerProviderStateMixin {
                             const PopupMenuItem(
                                 value: 'style',
                                 padding: EdgeInsets.symmetric(horizontal: 12),
-                                child: Text('V2EX 回复样式')),
+                                child: UiText('V2EX 回复样式')),
                           if (!flatReplies &&
                               threadPosts.any((p) =>
                                   p.parentId != null &&
@@ -2090,11 +2124,11 @@ class _TopicState extends State<TopicPage> with TickerProviderStateMixin {
                             const PopupMenuItem(
                                 value: 'expand',
                                 padding: EdgeInsets.symmetric(horizontal: 12),
-                                child: Text('全部展开')),
+                                child: UiText('全部展开')),
                             const PopupMenuItem(
                                 value: 'collapse',
                                 padding: EdgeInsets.symmetric(horizontal: 12),
-                                child: Text('全部折叠')),
+                                child: UiText('全部折叠')),
                           ]
                         ]),
             ],
@@ -2118,7 +2152,7 @@ class _TopicState extends State<TopicPage> with TickerProviderStateMixin {
                 child: FilledButton.icon(
                     onPressed: () => compose(),
                     icon: const Icon(Icons.edit_outlined),
-                    label: const Text('写回复')))),
+                    label: const UiText('写回复')))),
         body: SafeArea(
             child: RefreshIndicator(
                 onRefresh: reload,
@@ -2256,7 +2290,7 @@ class _TopicState extends State<TopicPage> with TickerProviderStateMixin {
                                                       const Icon(
                                                           Icons.edit_note,
                                                           size: 18),
-                                                      const Text(' 正文已更新 · ',
+                                                      const UiText(' 正文已更新 · ',
                                                           style: TextStyle(
                                                               fontSize: 12)),
                                                       TimeLabel(data!
@@ -2300,7 +2334,7 @@ class _TopicState extends State<TopicPage> with TickerProviderStateMixin {
                                 const SizedBox(height: 8),
                                 Row(children: [
                                   Expanded(
-                                      child: Text(
+                                      child: UiText(
                                           flatReplies && !data!.hasMore
                                               ? '回复 · ${replies.length}'
                                               : '回复 · ${data!.posts.length}',
@@ -2322,7 +2356,7 @@ class _TopicState extends State<TopicPage> with TickerProviderStateMixin {
                                                   .onSurfaceVariant),
                                       onPressed: () =>
                                           changeReplyView('author'),
-                                      child: Text(
+                                      child: UiText(
                                           onlyAuthor ? '✓ 只看楼主' : '只看楼主',
                                           style:
                                               const TextStyle(fontSize: 12))),
@@ -2338,7 +2372,7 @@ class _TopicState extends State<TopicPage> with TickerProviderStateMixin {
                                               ? Icons.arrow_downward
                                               : Icons.arrow_upward,
                                           size: 14),
-                                      label: Text(newestFirst ? '倒序' : '正序',
+                                      label: UiText(newestFirst ? '倒序' : '正序',
                                           style:
                                               const TextStyle(fontSize: 12))),
                                 ]),
@@ -2350,13 +2384,13 @@ class _TopicState extends State<TopicPage> with TickerProviderStateMixin {
                           if (moreFailed)
                             return TextButton(
                                 onPressed: collectReplies,
-                                child: const Text('回复加载失败，点击重试'));
+                                child: const UiText('回复加载失败，点击重试'));
                           return Padding(
                               padding: const EdgeInsets.all(16),
                               child: Column(children: [
                                 const CircularProgressIndicator(),
                                 const SizedBox(height: 8),
-                                Text(
+                                UiText(
                                     '正在加载全部回复以确保顺序和筛选完整，已加载 ${data!.posts.length} 条')
                               ]));
                         }
@@ -2364,16 +2398,16 @@ class _TopicState extends State<TopicPage> with TickerProviderStateMixin {
                             ? moreFailed
                                 ? TextButton(
                                     onPressed: loadMore,
-                                    child: const Text('加载失败，点击重试'))
+                                    child: const UiText('加载失败，点击重试'))
                                 : Padding(
                                     padding: const EdgeInsets.all(16),
                                     child: Center(
                                         child: more
                                             ? const CircularProgressIndicator()
-                                            : const Text('继续下滑自动加载回复')))
+                                            : const UiText('继续下滑自动加载回复')))
                             : const Padding(
                                 padding: EdgeInsets.all(20),
-                                child: Text('已读完全部回复',
+                                child: UiText('已读完全部回复',
                                     textAlign: TextAlign.center));
                       }
                       final post = replies[index - 1];
@@ -2452,7 +2486,7 @@ class _TopicState extends State<TopicPage> with TickerProviderStateMixin {
                                                                     MainAxisSize
                                                                         .min,
                                                                 children: [
-                                                          Text(
+                                                          UiText(
                                                               parent == null
                                                                   ? (post
                                                                           .parentLabel
@@ -2476,7 +2510,7 @@ class _TopicState extends State<TopicPage> with TickerProviderStateMixin {
                                                           if (parent != null)
                                                             render(parent.html)
                                                           else
-                                                            Text(post
+                                                            UiText(post
                                                                     .parentExcerpt
                                                                     .isEmpty
                                                                 ? '该回复不在当前已加载页面。'
@@ -2489,8 +2523,9 @@ class _TopicState extends State<TopicPage> with TickerProviderStateMixin {
                                                                 jumpToParent(
                                                                     post);
                                                               },
-                                                              child: const Text(
-                                                                  '跳转到原回复')),
+                                                              child:
+                                                                  const UiText(
+                                                                      '跳转到原回复')),
                                                         ])))));
                                       },
                                       child: Container(
@@ -2509,7 +2544,7 @@ class _TopicState extends State<TopicPage> with TickerProviderStateMixin {
                                               crossAxisAlignment:
                                                   CrossAxisAlignment.start,
                                               children: [
-                                                Text(
+                                                UiText(
                                                     post.parentLabel.isNotEmpty
                                                         ? post.parentLabel
                                                         : '↳ 回复 ${data!.posts.where((p) => p.id == post.parentId).map((p) => "#${p.number} ${p.author}").firstOrNull ?? "上层回复"}',
@@ -2557,7 +2592,7 @@ class _TopicState extends State<TopicPage> with TickerProviderStateMixin {
                                                       .primaryContainer,
                                                   borderRadius:
                                                       BorderRadius.circular(4)),
-                                              child: const Text('楼主',
+                                              child: const UiText('楼主',
                                                   style: TextStyle(
                                                       fontSize: 10)))),
                                     Expanded(
@@ -2582,7 +2617,8 @@ class _TopicState extends State<TopicPage> with TickerProviderStateMixin {
                                         page: post.sourcePage,
                                         key: ValueKey('social/${post.id}')),
                                     IconButton(
-                                        tooltip: '回复 ${post.author}',
+                                        tooltip:
+                                            uiTr(context, '回复 ${post.author}'),
                                         constraints: const BoxConstraints(
                                             minWidth: 36, minHeight: 36),
                                         padding: const EdgeInsets.all(8),
@@ -2634,7 +2670,7 @@ class _TopicState extends State<TopicPage> with TickerProviderStateMixin {
                                                             .colorScheme
                                                             .onSurfaceVariant),
                                                     const SizedBox(width: 4),
-                                                    Text(
+                                                    UiText(
                                                         childCount(post.id)
                                                                 .toString() +
                                                             ' 条回复',
@@ -2652,7 +2688,8 @@ class _TopicState extends State<TopicPage> with TickerProviderStateMixin {
                                               width: 28,
                                               height: 22,
                                               child: IconButton(
-                                                  tooltip: '折叠回复',
+                                                  tooltip:
+                                                      uiTr(context, '折叠回复'),
                                                   padding: EdgeInsets.zero,
                                                   onPressed: () => setState(
                                                       () => collapsedReplies
@@ -2696,11 +2733,11 @@ class _ComposerState extends State<Composer> {
                     child: Padding(
                         padding: const EdgeInsets.all(16),
                         child: Column(children: [
-                          Text(widget.forum.discourse ? '选择可发帖分类' : '选择节点'),
+                          UiText(widget.forum.discourse ? '选择可发帖分类' : '选择节点'),
                           TextField(
-                              decoration: const InputDecoration(
+                              decoration: InputDecoration(
                                   prefixIcon: Icon(Icons.search),
-                                  hintText: '搜索名称'),
+                                  hintText: uiTr(context, '搜索名称')),
                               onChanged: (s) =>
                                   update(() => query = s.toLowerCase())),
                           Expanded(
@@ -2743,25 +2780,25 @@ class _ComposerState extends State<Composer> {
     final value = await showDialog<String>(
         context: context,
         builder: (c) => AlertDialog(
-                title: const Text('插入图片链接'),
+                title: const UiText('插入图片链接'),
                 content: Column(mainAxisSize: MainAxisSize.min, children: [
                   if (!widget.forum.discourse)
-                    const Text(
+                    const UiText(
                         'V2EX 优先使用 i.imgur.com 或 i.v2ex.co 的图片链接；其他地址可能仅显示为链接。',
                         style: TextStyle(fontSize: 12)),
                   TextField(
                       controller: controller,
                       keyboardType: TextInputType.url,
                       autofocus: true,
-                      decoration: const InputDecoration(hintText: 'https://…'))
+                      decoration: InputDecoration(hintText: 'https://…'))
                 ]),
                 actions: [
                   TextButton(
                       onPressed: () => Navigator.pop(c),
-                      child: const Text('取消')),
+                      child: const UiText('取消')),
                   FilledButton(
                       onPressed: () => Navigator.pop(c, controller.text.trim()),
-                      child: const Text('插入'))
+                      child: const UiText('插入'))
                 ]));
     // Dispose after dialog animation has released its TextField.
     Future<void>.delayed(const Duration(seconds: 1), controller.dispose);
@@ -2811,7 +2848,7 @@ class _ComposerState extends State<Composer> {
       final accepted = await showDialog<bool>(
           context: context,
           builder: (c) => AlertDialog(
-                  title: const Text('上传图片'),
+                  title: const UiText('上传图片'),
                   content: Column(mainAxisSize: MainAxisSize.min, children: [
                     Image.memory(selected.bytes,
                         height: 180,
@@ -2819,17 +2856,17 @@ class _ComposerState extends State<Composer> {
                         errorBuilder: (_, e, s) =>
                             const Icon(Icons.image, size: 64)),
                     const SizedBox(height: 8),
-                    Text(
+                    UiText(
                         '上传到 ${widget.forum.discourse ? 'LINUX DO' : 'Imgur'}，成功后插入草稿。\n${(selected.bytes.length / 1024 / 1024).toStringAsFixed(1)} MB',
                         style: const TextStyle(fontSize: 12))
                   ]),
                   actions: [
                     TextButton(
                         onPressed: () => Navigator.pop(c, false),
-                        child: const Text('取消')),
+                        child: const UiText('取消')),
                     FilledButton(
                         onPressed: () => Navigator.pop(c, true),
-                        child: const Text('上传'))
+                        child: const UiText('上传'))
                   ]));
       if (accepted != true || !mounted) return;
       setState(() => uploadStage =
@@ -2841,7 +2878,7 @@ class _ComposerState extends State<Composer> {
             ? '![图片]($markup)'
             : markup);
         ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('图片已上传并插入草稿，尚未发布')));
+            .showSnackBar(const SnackBar(content: UiText('图片已上传并插入草稿，尚未发布')));
       }
     } catch (e) {
       if (mounted) setState(() => uploadError = e.toString());
@@ -2855,7 +2892,9 @@ class _ComposerState extends State<Composer> {
   }
 
   static final drafts = <String, String>{};
+  static final draftReplyTargets = <String, Post?>{};
   late final TextEditingController text;
+  Post? replyTarget;
   ReplyTicket? ticket;
   bool preparing = true, sending = false, uncertain = false;
   String? error;
@@ -2863,10 +2902,11 @@ class _ComposerState extends State<Composer> {
   @override
   void initState() {
     super.initState();
+    replyTarget = widget.quote ?? draftReplyTargets[keyName];
     text = TextEditingController(
         text: drafts[keyName] ??
             (widget.quote != null && !widget.forum.discourse
-                ? '@${widget.quote!.author} #${widget.quote!.number}\n\n'
+                ? '@${widget.quote!.author} '
                 : ''));
     if (widget.creating) {
       title.text = drafts['$keyName/title'] ?? '';
@@ -2877,7 +2917,13 @@ class _ComposerState extends State<Composer> {
 
   @override
   void dispose() {
-    if (text.text.isNotEmpty) drafts[keyName] = text.text;
+    if (text.text.isNotEmpty) {
+      drafts[keyName] = text.text;
+      draftReplyTargets[keyName] = replyTarget;
+    } else {
+      drafts.remove(keyName);
+      draftReplyTargets.remove(keyName);
+    }
     if (widget.creating) {
       drafts['$keyName/title'] = title.text;
       drafts['$keyName/tags'] = tags.text;
@@ -2921,16 +2967,16 @@ class _ComposerState extends State<Composer> {
     final accepted = await showDialog<bool>(
         context: context,
         builder: (c) => AlertDialog(
-                title: Text(widget.creating ? '发布这个主题？' : '发布这条回复？'),
-                content: Text(
+                title: UiText(widget.creating ? '发布这个主题？' : '发布这条回复？'),
+                content: UiText(
                     '将发布到 ${widget.forum.name}${widget.creating ? ' · ${section!.name}' : ''}：\n${widget.creating ? title.text.trim() : widget.topic.title}${widget.creating && !widget.forum.discourse ? '\nV2EX 发帖可能消耗铜币，以网站规则为准。' : ''}'),
                 actions: [
                   TextButton(
                       onPressed: () => Navigator.pop(c, false),
-                      child: const Text('继续编辑')),
+                      child: const UiText('继续编辑')),
                   FilledButton(
                       onPressed: () => Navigator.pop(c, true),
-                      child: const Text('发布'))
+                      child: const UiText('发布'))
                 ]));
     if (accepted != true || !mounted) return;
     setState(() {
@@ -2952,8 +2998,8 @@ class _ComposerState extends State<Composer> {
         tags.clear();
         if (mounted) {
           if (result == null)
-            ScaffoldMessenger.of(context)
-                .showSnackBar(const SnackBar(content: Text('主题已提交审核，请勿重复发布')));
+            ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: UiText('主题已提交审核，请勿重复发布')));
           Navigator.pop(context, result);
         }
         return;
@@ -2961,8 +3007,9 @@ class _ComposerState extends State<Composer> {
       final fresh = await widget.forum.prepareReply(widget.topic.id);
       await widget.forum.submit(widget.topic.id, text.text, fresh,
           replyTo:
-              widget.forum.discourse ? widget.quote?.number : widget.quote?.id);
+              widget.forum.discourse ? replyTarget?.number : replyTarget?.id);
       drafts.remove(keyName);
+      draftReplyTargets.remove(keyName);
       text.clear();
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
@@ -2982,7 +3029,7 @@ class _ComposerState extends State<Composer> {
       child: Scaffold(
           appBar: AppBar(
               title:
-                  Text(widget.creating ? '${widget.forum.name} · 发帖' : '写回复'),
+                  UiText(widget.creating ? '${widget.forum.name} · 发帖' : '写回复'),
               actions: [
                 TextButton(
                     onPressed: ticket != null &&
@@ -2992,7 +3039,7 @@ class _ComposerState extends State<Composer> {
                             !uncertain
                         ? send
                         : null,
-                    child: Text(sending ? '发送中…' : '发送'))
+                    child: UiText(sending ? '发送中…' : '发送'))
               ]),
           body: SafeArea(
               child: Padding(
@@ -3006,33 +3053,76 @@ class _ComposerState extends State<Composer> {
                               enabled: !sending && !uploading,
                               maxLines: 2,
                               minLines: 1,
-                              decoration: const InputDecoration(
-                                  hintText: '标题', border: InputBorder.none)),
+                              decoration: InputDecoration(
+                                  hintText: uiTr(context, '标题'),
+                                  border: InputBorder.none)),
                           TextButton.icon(
                               onPressed: preparing || sending || uploading
                                   ? null
                                   : pickSection,
                               icon: const Icon(Icons.folder_outlined, size: 18),
-                              label: Text(section?.name ??
-                                  '选择${widget.forum.discourse ? '分类' : '节点'}')),
+                              label: UiText(section?.name ??
+                                  (widget.forum.discourse ? '选择分类' : '选择节点'))),
                           if (widget.forum.discourse)
                             TextField(
                                 controller: tags,
                                 enabled: !sending && !uploading,
-                                decoration: const InputDecoration(
+                                decoration: InputDecoration(
                                     isDense: true,
-                                    hintText: '标签（逗号分隔，部分分类必填）',
+                                    hintText: uiTr(context, '标签（逗号分隔，部分分类必填）'),
                                     border: InputBorder.none)),
                           const Divider(height: 8),
                         ],
-                        if (!widget.creating)
+                        if (!widget.creating && replyTarget != null)
+                          Container(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            padding: const EdgeInsets.fromLTRB(10, 6, 2, 6),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .surfaceContainerHighest,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(children: [
+                              const Icon(Icons.reply, size: 18),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                  child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  UiText(
+                                      '正在回复 @${replyTarget!.author} · #${replyTarget!.number}',
+                                      style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600)),
+                                  Text(
+                                      html_parser
+                                              .parse(replyTarget!.html)
+                                              .body
+                                              ?.text
+                                              .trim()
+                                              .replaceAll(
+                                                  RegExp(r'\s+'), ' ') ??
+                                          '',
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(fontSize: 12)),
+                                ],
+                              )),
+                              IconButton(
+                                tooltip: uiTr(context, '取消回复目标'),
+                                onPressed: sending || uploading
+                                    ? null
+                                    : () => setState(() => replyTarget = null),
+                                icon: const Icon(Icons.close, size: 18),
+                              ),
+                            ]),
+                          ),
+                        if (!widget.creating && replyTarget == null)
                           ExpansionTile(
                               dense: true,
                               tilePadding: EdgeInsets.zero,
-                              title: Text(
-                                  widget.quote == null
-                                      ? '查看回复主题'
-                                      : '回复 @${widget.quote!.author} · #${widget.quote!.number}',
+                              title: UiText('查看回复主题',
                                   style: const TextStyle(fontSize: 12)),
                               children: [
                                 Text(widget.topic.title,
@@ -3043,19 +3133,19 @@ class _ComposerState extends State<Composer> {
                           Padding(
                               padding: const EdgeInsets.symmetric(vertical: 10),
                               child: Column(children: [
-                                Text(error!),
+                                UiText(error!),
                                 if (!uncertain)
                                   Wrap(children: [
                                     TextButton(
                                         onPressed: preparing ? null : prepare,
-                                        child: const Text('重试')),
+                                        child: const UiText('重试')),
                                     TextButton(
                                         onPressed: () async {
                                           await authenticate(
                                               context, widget.forum);
                                           if (mounted) prepare();
                                         },
-                                        child: const Text('登录 / 验证'))
+                                        child: const UiText('登录 / 验证'))
                                   ])
                               ])),
                         Expanded(
@@ -3067,13 +3157,15 @@ class _ComposerState extends State<Composer> {
                                 minLines: null,
                                 textAlignVertical: TextAlignVertical.top,
                                 decoration: InputDecoration(
-                                    hintText: widget.creating
-                                        ? '正文（支持 Markdown）…'
-                                        : '写下你的回复…',
+                                    hintText: uiTr(
+                                        context,
+                                        widget.creating
+                                            ? '正文（支持 Markdown）…'
+                                            : '写下你的回复…'),
                                     border: InputBorder.none))),
                         if (uploading) const LinearProgressIndicator(),
                         if (uploadError != null)
-                          Text(uploadError!,
+                          UiText(uploadError!,
                               style: TextStyle(
                                   fontSize: 12,
                                   color: Theme.of(context).colorScheme.error)),
@@ -3084,12 +3176,12 @@ class _ComposerState extends State<Composer> {
                               icon: const Icon(
                                   Icons.add_photo_alternate_outlined,
                                   size: 20),
-                              label: Text(uploading ? '处理中…' : '上传图片')),
+                              label: UiText(uploading ? '处理中…' : '上传图片')),
                           TextButton.icon(
                               onPressed:
                                   sending || uploading ? null : imageLink,
                               icon: const Icon(Icons.link, size: 20),
-                              label: const Text('图片链接'))
+                              label: const UiText('图片链接'))
                         ]),
                         if (uploading) ...[
                           const LinearProgressIndicator(),
@@ -3098,7 +3190,7 @@ class _ComposerState extends State<Composer> {
                               child: Text(uploadStage,
                                   style: const TextStyle(fontSize: 12))),
                         ],
-                        const Text('发送前会再次确认；失败时保留编辑内容。',
+                        const UiText('发送前会再次确认；失败时保留编辑内容。',
                             style: TextStyle(fontSize: 12)),
                       ])))));
 }
@@ -3116,12 +3208,12 @@ class Problem extends StatelessWidget {
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             const Icon(Icons.cloud_off_outlined, size: 36),
             const SizedBox(height: 12),
-            Text(message),
+            UiText(message),
             const SizedBox(height: 12),
             Wrap(spacing: 8, children: [
-              OutlinedButton(onPressed: retry, child: const Text('重试')),
+              OutlinedButton(onPressed: retry, child: const UiText('重试')),
               if (needsLogin)
-                FilledButton(onPressed: login, child: const Text('登录 / 验证'))
+                FilledButton(onPressed: login, child: const UiText('登录 / 验证'))
             ])
           ])));
 }
@@ -3215,7 +3307,7 @@ class TimeLabel extends StatelessWidget {
     }
     return Tooltip(
         message: full.isEmpty ? '时间未提供' : full,
-        child: Text(label.isEmpty ? '时间未知' : label,
+        child: UiText(label.isEmpty ? '时间未知' : label,
             style: TextStyle(
                 fontSize: 11,
                 color: Theme.of(context).colorScheme.onSurfaceVariant)));

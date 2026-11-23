@@ -177,18 +177,22 @@ class ProfileService {
           '');
       if (id == null) continue;
       if (!cell.classes.contains('dock_area') && !seen.add(id)) continue;
+      final isReply = cell.classes.contains('dock_area');
+      final timeElement = isReply
+          ? cell.querySelector('.fr .fade, .fr .ago, .fr time')
+          : cell.querySelector(
+              '.topic_info span[title], .topic_info .ago, .topic_info time, '
+              '.small.fade span[title], .small.fade .ago, .small.fade time');
       topics.add(Topic(id, a.text.trim(),
           author: username,
-          activityExcerpt: cell.classes.contains('dock_area')
+          activityExcerpt: isReply
               ? cell.nextElementSibling
                       ?.querySelector('.reply_content')
                       ?.text
                       .trim() ??
                   ''
               : '',
-          activityTimeLabel: cell.classes.contains('dock_area')
-              ? (cell.querySelector('.fr .fade')?.text.trim() ?? '')
-              : '',
+          activityTimeLabel: timeElement?.text.trim() ?? '',
           category:
               cell.querySelector('.node, a[href^="/go/"]')?.text.trim() ?? '',
           avatar: forum
@@ -196,9 +200,8 @@ class ProfileService {
           replies: int.tryParse(
                   cell.querySelector('.count_livid')?.text.trim() ?? '') ??
               0,
-          createdAt: parseTime(
-              cell.querySelector('.fr [title]')?.attributes['title'] ??
-                  cell.querySelector('.ago[title]')?.attributes['title'])));
+          createdAt: parseTime(timeElement?.attributes['datetime'] ??
+              timeElement?.attributes['title'])));
     }
     final last = doc
         .querySelectorAll('.page_normal,.page_current')

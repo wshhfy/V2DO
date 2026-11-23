@@ -1,3 +1,4 @@
+import 'ui_text.dart';
 import 'package:flutter/material.dart';
 import 'forum.dart';
 import 'main.dart' show authenticate;
@@ -25,15 +26,15 @@ class _SectionPickerState extends State<SectionPicker> {
           child: Column(children: [
             Row(children: [
               Expanded(
-                  child: Text(widget.forum.discourse ? '分类与标签' : '频道与节点',
+                  child: UiText(widget.forum.discourse ? '分类与标签' : '频道与节点',
                       style: const TextStyle(
                           fontSize: 18, fontWeight: FontWeight.w700))),
               TextButton(
                   onPressed: () => Navigator.pop(
                       context, const ForumSection('', '全部', 'all')),
-                  child: const Text('全部帖子')),
+                  child: const UiText('全部帖子')),
               IconButton(
-                  tooltip: '关闭',
+                  tooltip: uiTr(context, '关闭'),
                   onPressed: () => Navigator.pop(context),
                   icon: const Icon(Icons.close)),
             ]),
@@ -45,7 +46,7 @@ class _SectionPickerState extends State<SectionPicker> {
                 Padding(
                     padding: const EdgeInsets.only(right: 8),
                     child: ChoiceChip(
-                        label: Text(entry.value),
+                        label: UiText(entry.value),
                         selected: kind == entry.key,
                         onSelected: (_) => change(entry.key))),
             ]),
@@ -55,16 +56,18 @@ class _SectionPickerState extends State<SectionPicker> {
                 decoration: InputDecoration(
                     isDense: true,
                     prefixIcon: const Icon(Icons.search),
-                    hintText: kind == 'node' || kind == 'followed'
-                        ? '搜索节点名称 / 英文名'
-                        : '搜索${kind == 'tag' ? '标签' : '分类'}')),
+                    hintText: uiTr(
+                        context,
+                        kind == 'node' || kind == 'followed'
+                            ? '搜索节点名称 / 英文名'
+                            : (kind == 'tag' ? '搜索标签' : '搜索分类')))),
             const SizedBox(height: 8),
             if (widget.forum.discourse && kind == 'category')
               const Align(
                   alignment: Alignment.centerLeft,
                   child: Padding(
                       padding: EdgeInsets.only(bottom: 6),
-                      child: Text('仅显示当前账号可见的分类',
+                      child: UiText('仅显示当前账号可见的分类',
                           style: TextStyle(fontSize: 11)))),
             Expanded(
                 child: FutureBuilder<List<ForumSection>>(
@@ -78,14 +81,14 @@ class _SectionPickerState extends State<SectionPicker> {
                               Text(snapshot.error.toString()),
                               TextButton(
                                   onPressed: () => change(kind),
-                                  child: const Text('重试')),
+                                  child: const UiText('重试')),
                               if (kind == 'followed')
                                 TextButton(
                                     onPressed: () async {
                                       await authenticate(context, widget.forum);
                                       if (mounted) change(kind);
                                     },
-                                    child: const Text('登录 / 验证'))
+                                    child: const UiText('登录 / 验证'))
                             ]));
                       if (!snapshot.hasData)
                         return const Center(child: CircularProgressIndicator());
@@ -96,7 +99,7 @@ class _SectionPickerState extends State<SectionPicker> {
                           .toList();
                       if (rows.isEmpty)
                         return Center(
-                            child: Text(kind == 'followed' && search.isEmpty
+                            child: UiText(kind == 'followed' && search.isEmpty
                                 ? '还没有关注的节点'
                                 : '没有匹配的项目'));
                       return ListView.builder(

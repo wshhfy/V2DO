@@ -1,3 +1,4 @@
+import 'ui_text.dart';
 import 'package:flutter/material.dart';
 import 'package:html/dom.dart' as dom;
 import 'package:html/parser.dart' as html;
@@ -201,12 +202,12 @@ class _V2WalletPageState extends State<V2WalletPage> {
       final result = await DailyCheckIn.run();
       if (mounted)
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(result ?? '今日已签到')));
+            .showSnackBar(SnackBar(content: UiText(result ?? '今日已签到')));
       if (mounted) await load(target: 1);
     } catch (e) {
       if (mounted)
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.toString())));
+            .showSnackBar(SnackBar(content: UiText(e.toString())));
     } finally {
       if (mounted) setState(() => signing = false);
     }
@@ -214,11 +215,11 @@ class _V2WalletPageState extends State<V2WalletPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-      appBar: AppBar(title: const Text('V2EX 签到与余额'), actions: [
+      appBar: AppBar(title: const UiText('V2EX 签到与余额'), actions: [
         IconButton(
             onPressed: busy ? null : () => load(),
             icon: const Icon(Icons.refresh),
-            tooltip: '刷新')
+            tooltip: uiTr(context, '刷新'))
       ]),
       body: busy && balance == null
           ? const Center(child: CircularProgressIndicator())
@@ -232,7 +233,7 @@ class _V2WalletPageState extends State<V2WalletPage> {
                     if (error != null)
                       Padding(
                           padding: const EdgeInsets.only(bottom: 12),
-                          child: Text(error!,
+                          child: UiText(error!,
                               style: TextStyle(
                                   color: Theme.of(context).colorScheme.error))),
                     if (balance != null) ...[
@@ -242,7 +243,7 @@ class _V2WalletPageState extends State<V2WalletPage> {
                               child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text('账户余额',
+                                    const UiText('账户余额',
                                         style: TextStyle(
                                             fontWeight: FontWeight.bold)),
                                     const SizedBox(height: 8),
@@ -266,7 +267,7 @@ class _V2WalletPageState extends State<V2WalletPage> {
                                     const SizedBox(height: 12),
                                     Row(children: [
                                       Expanded(
-                                          child: Text(signed == true
+                                          child: UiText(signed == true
                                               ? '今日已签到'
                                               : signed == false
                                                   ? '今日尚未签到'
@@ -275,16 +276,16 @@ class _V2WalletPageState extends State<V2WalletPage> {
                                         FilledButton.tonal(
                                             onPressed: signing ? null : sign,
                                             child:
-                                                Text(signing ? '签到中…' : '签到'))
+                                                UiText(signing ? '签到中…' : '签到'))
                                     ]),
                                   ]))),
                       const SizedBox(height: 16),
-                      const Text('余额记录',
+                      const UiText('余额记录',
                           style: TextStyle(fontWeight: FontWeight.bold)),
                       if (records.isEmpty)
                         const Padding(
                             padding: EdgeInsets.all(16),
-                            child: Text('暂无可显示的记录')),
+                            child: UiText('暂无可显示的记录')),
                       for (final r in records)
                         Padding(
                             padding: const EdgeInsets.symmetric(vertical: 5),
@@ -338,7 +339,7 @@ class _V2WalletPageState extends State<V2WalletPage> {
                                                     color: Theme.of(context)
                                                         .colorScheme
                                                         .onSurfaceVariant))),
-                                        Text('余额 ${r.balance}',
+                                        UiText('余额 ${r.balance}',
                                             style: TextStyle(
                                                 fontSize: 11,
                                                 color: Theme.of(context)
@@ -353,12 +354,12 @@ class _V2WalletPageState extends State<V2WalletPage> {
                       if (moreFailed)
                         TextButton(
                             onPressed: loadMore,
-                            child: const Text('加载失败，点击重试')),
+                            child: const UiText('加载失败，点击重试')),
                       if (!hasMore && records.isNotEmpty)
                         const Padding(
                             padding: EdgeInsets.all(16),
                             child:
-                                Text('已显示全部记录', textAlign: TextAlign.center)),
+                                UiText('已显示全部记录', textAlign: TextAlign.center)),
                     ],
                   ])));
 }

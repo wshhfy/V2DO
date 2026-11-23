@@ -187,15 +187,32 @@ class MainActivity : FlutterActivity() {
                     "theme" -> if (value is String && value in setOf("system", "light", "dark")) edit.putString("theme", value)
                     "accent" -> if (value is Number) edit.putInt("accent", value.toInt())
                     "autoUpdate" -> if (value is Boolean) edit.putBoolean("autoUpdate", value)
+                    "echEnabled" -> if (value is Boolean) edit.putBoolean("echEnabled", value)
+                    "language" -> if (value is String && value in setOf("zh", "en")) edit.putString("language", value)
                     "imgurClientId" -> if (value is String && (value.isEmpty() || value.matches(Regex("[a-zA-Z0-9]{8,64}")))) edit.putString("imgurClientId", value)
                     "lastUpdateCheck" -> if (value is Number) edit.putLong("lastUpdateCheck", value.toLong())
                     "v2exKnownBlocks" -> if (value is String && value.length <= 262144) edit.putString("v2exKnownBlocks", value)
                     "recentVisits" -> if (value is String && value.length <= 524288) edit.putString("recentVisits", value)
                     "knownAccounts" -> if (value is String && value.length <= 16384) edit.putString("knownAccounts", value)
                     "startForum" -> if (value is Number && value.toInt() in 0..1) edit.putInt("startForum", value.toInt())
+                    "fontSize" -> if (value is Number && value.toInt() in 0..3) edit.putInt("fontSize", value.toInt())
                 }
                 edit.apply()
                 result.success(null)
+                return@setMethodCallHandler
+            }
+            if (call.method == "echCheck") {
+                executor.execute {
+                    val report = mutableMapOf<String, Boolean>()
+                    for (host in listOf("www.v2ex.com", "linux.do")) {
+                        report[host] = try {
+                            val r = EchBridge.call("https://$host/cdn-cgi/trace", "GET", mapOf("User-Agent" to userAgent), ByteArray(0))
+                            val body = String(android.util.Base64.decode(r.optString("body"), android.util.Base64.DEFAULT), Charsets.UTF_8)
+                            r.optInt("status") == 200 && body.lineSequence().any { it == "sni=encrypted" }
+                        } catch (_: Throwable) { false }
+                    }
+                    runOnUiThread { result.success(report) }
+                }
                 return@setMethodCallHandler
             }
             if (call.method != "request") { result.notImplemented(); return@setMethodCallHandler }
@@ -215,6 +232,36 @@ class MainActivity : FlutterActivity() {
             val binary = call.argument<Boolean>("binary") == true && method == "GET"
             val extraHeaders = call.argument<Map<String, String>>("headers") ?: emptyMap()
             (if (binary) imageExecutor else executor).execute {
+                if (!imgurRequest && getSharedPreferences("exdo_settings", MODE_PRIVATE).getBoolean("echEnabled", false)) {
+                    try {
+                        val headers = mutableMapOf("User-Agent" to userAgent)
+                        if (!cookies.isNullOrEmpty()) headers["Cookie"] = cookies
+                        for ((key, value) in extraHeaders) {
+                            if (key.lowercase() in setOf("accept", "content-type", "x-csrf-token", "x-requested-with", "referer", "origin", "user-agent")) headers[key] = value
+                        }
+                        val payload = requestBytes ?: (body ?: "").toByteArray(Charsets.UTF_8)
+                        val reply = EchBridge.call(address, method, headers, payload)
+                        val bytes = android.util.Base64.decode(reply.optString("body"), android.util.Base64.DEFAULT)
+                        val status = reply.getInt("status")
+                        val location = reply.optString("location")
+                        val jsonCookies = reply.optJSONArray("cookies")
+                        val responseCookies = if (jsonCookies == null) emptyList() else (0 until jsonCookies.length()).map { jsonCookies.getString(it) }
+                        runOnUiThread {
+                            val response = mapOf("status" to status, "body" to if (binary) "" else String(bytes, Charsets.UTF_8), "bytes" to if (binary) bytes else null, "location" to location)
+                            if (responseCookies.isEmpty()) result.success(response)
+                            else {
+                                val pending = java.util.concurrent.atomic.AtomicInteger(responseCookies.size)
+                                val manager = CookieManager.getInstance()
+                                for (cookie in responseCookies) manager.setCookie(address, cookie) {
+                                    if (pending.decrementAndGet() == 0) { executor.execute { manager.flush() }; result.success(response) }
+                                }
+                            }
+                        }
+                    } catch (_: Throwable) {
+                        runOnUiThread { result.error("ECH_NETWORK", if (method == "GET") "ECH 连接失败，请检查网络或关闭 ECH 测试开关" else "ECH 请求结果未确认，请先刷新核对，避免重复发送", null) }
+                    }
+                    return@execute
+                }
                 var connection: HttpURLConnection? = null
                 try {
                     connection = uri.toURL().openConnection() as HttpURLConnection

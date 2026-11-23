@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:forum_app/forum.dart';
 import 'package:forum_app/session.dart';
 import 'package:forum_app/notifications.dart';
+import 'package:forum_app/account.dart';
 import 'package:forum_app/uploads.dart';
 
 void main() {
@@ -124,6 +125,52 @@ void main() {
     expect(page.items.single.unread, true);
     expect(page.hasMore, true);
     expect(NoticeService.v2Count('<a href="/notifications">12 条未读提醒</a>'), 12);
+  });
+  test('V2 unread count uses desktop layout when mobile omits the counter',
+      () async {
+    final calls = <Map<String, String>>[];
+    final forum = Forum('V2EX', 'www.v2ex.com', false,
+        transport: (uri, {method = 'GET', headers = const {}, body}) async {
+      expect(uri.path, '/'); // Never open the notification page just to count.
+      calls.add(headers);
+      return ForumResponse(
+          200,
+          calls.length == 1
+              ? '<html><title>V2EX</title><div id="menu-body"></div></html>'
+              : '<div id="Rightbar"><a href="/notifications">12 条未读提醒</a></div>');
+    });
+    expect(await NoticeService(forum).unreadCount(), 12);
+    expect(calls.length, 2);
+    expect(calls.last['User-Agent'], contains('Linux x86_64'));
+    expect(NoticeService.v2CountOrNull('<html></html>'), isNull);
+    expect(NoticeService.v2CountOrNull('<title>(7) V2EX</title>'), 7);
+  });
+  test('A transient unread refresh failure does not erase a known badge',
+      () async {
+    final old = Accounts.states[0].value;
+    Accounts.states[0].value = const AccountState(
+        account: ForumAccount('fixture', ''), verified: true);
+    UnreadMessages.counts[0].value = 4;
+    addTearDown(() {
+      Accounts.states[0].value = old;
+      UnreadMessages.counts[0].value = null;
+    });
+    final forum = Forum('V2EX', 'www.v2ex.com', false,
+        transport: (uri, {method = 'GET', headers = const {}, body}) async =>
+            throw Exception('offline'));
+    await UnreadMessages.refresh(forum);
+    expect(UnreadMessages.counts[0].value, 4);
+  });
+  test('V2 notification time supports snow, compact English, and timestamps',
+      () {
+    final page = NoticeService(forums[0]).parseV2('''<div id="notifications">
+      <div class="cell" id="n_1"><a href="/t/1">One</a><span class="snow">2h 52m ago</span></div>
+      <div class="cell" id="n_2"><a href="/t/2">Two</a><span class="fade">3 小时前</span></div>
+      <div class="cell" id="n_3"><a href="/t/3">Three</a><time datetime="2026-11-18T02:00:00Z">today</time></div>
+    </div>''');
+    expect(page.items[0].timeLabel, '2h 52m ago');
+    expect(page.items[1].timeLabel, '3 小时前');
+    expect(page.items[2].createdAt, DateTime.utc(2026, 11, 18, 2));
   });
   test(
       'Upload sends multipart bytes with CSRF and inserts returned short URL only',
